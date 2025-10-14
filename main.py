@@ -28,24 +28,21 @@ os.makedirs(BASE_CONTEXT_DIR, exist_ok=True)
 
 
 class ResearchSession:
-    """Manages a single research session with state machine"""
+    """Manages a single research session with state machine
 
-    def __init__(self, session_name: str = None):
-        if not session_name:
-            session_name = "research"
+    ARCHITECTURE NOTE:
+    - Session creation is DECOUPLED from filesystem creation
+    - Folders are created AFTER episode names are generated and approved
+    - This enables clean, user-approved episode names for all research
+    """
 
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        self.session_dir = os.path.join(BASE_CONTEXT_DIR, f"session_{session_name}_{timestamp}")
-        os.makedirs(self.session_dir, exist_ok=True)
-
-        # Create subdirectories
-        self.initial_research_dir = os.path.join(self.session_dir, "initial_research")
-        os.makedirs(self.initial_research_dir, exist_ok=True)
-
+    def __init__(self):
+        """Initialize session state (NO FILESYSTEM I/O)"""
         # Session state
         self.state = "TASKING"
         self.query = None
         self.original_query = None  # Store original query separately (never overwritten)
+        self.episode_name = None  # Clean episode name (for folder naming)
         self.tasking_context = {}
         self.research_findings = {}
         self.narrative = ""
@@ -58,11 +55,67 @@ class ResearchSession:
         self.initial_episode_id = ""  # ID of initial research episode
         self.deep_episode_ids = []  # List of deep research episode IDs
 
-        # Save metadata
+        # Filesystem paths (set by initialize_filesystem)
+        self.session_dir = None
+        self.initial_research_dir = None
+
+    def initialize_filesystem(self, episode_name: str):
+        """Create filesystem structure with clean episode name
+
+        Called AFTER tasking conversation when we have an approved episode name.
+
+        Structure:
+            context/
+            └── {episode_name}/
+                ├── {episode_name}/  (initial research folder)
+                ├── session.json
+                └── (deep research folders created later)
+        """
+        # Clean episode name for filesystem (replace spaces with underscores)
+        safe_name = episode_name.replace(" ", "_").replace("/", "_")
+
+        # Session folder = episode name
+        self.session_dir = os.path.join(BASE_CONTEXT_DIR, safe_name)
+        os.makedirs(self.session_dir, exist_ok=True)
+
+        # Initial research folder = same episode name
+        self.initial_research_dir = os.path.join(self.session_dir, safe_name)
+        os.makedirs(self.initial_research_dir, exist_ok=True)
+
+        # Store clean episode name
+        self.episode_name = episode_name
+
+        # Save initial metadata
         self.save_metadata()
+
+        print_status("FILESYSTEM", f"Created session: {safe_name}")
+
+    def create_deep_research_dir(self, episode_name: str) -> str:
+        """Create directory for deep research with clean episode name
+
+        Args:
+            episode_name: Clean, approved episode name (e.g., "ICP signals for downmarket")
+
+        Returns:
+            Path to deep research directory
+        """
+        self.deep_research_count += 1
+
+        # Clean episode name for filesystem
+        safe_name = episode_name.replace(" ", "_").replace("/", "_")
+
+        # Folder name = clean episode name (NO prefixes like "deep_research_1_")
+        deep_dir = os.path.join(self.session_dir, safe_name)
+        os.makedirs(deep_dir, exist_ok=True)
+
+        return deep_dir
 
     def save_metadata(self):
         """Save session metadata"""
+        if not self.session_dir:
+            # Filesystem not initialized yet
+            return
+
         meta_file = os.path.join(self.session_dir, "session.json")
         with open(meta_file, 'w') as f:
             json.dump({
@@ -70,18 +123,11 @@ class ResearchSession:
                 "state": self.state,
                 "query": self.query,
                 "original_query": self.original_query,
+                "episode_name": self.episode_name,
                 "deep_research_count": self.deep_research_count,
                 "initial_episode_id": self.initial_episode_id,
                 "deep_episode_ids": self.deep_episode_ids
             }, f, indent=2)
-
-    def create_deep_research_dir(self, topic: str) -> str:
-        """Create directory for deep research on specific topic"""
-        self.deep_research_count += 1
-        safe_topic = topic.replace(" ", "_").replace("/", "_")[:50]
-        deep_dir = os.path.join(self.session_dir, f"deep_research_{self.deep_research_count}_{safe_topic}")
-        os.makedirs(deep_dir, exist_ok=True)
-        return deep_dir
 
     def load_research_context(self):
         """Load all research context into memory for refinement"""
@@ -89,21 +135,33 @@ class ResearchSession:
 
         # Load initial research
         initial_dir = self.initial_research_dir
-        for filename in ['academic_researcher.txt', 'industry_intelligence.txt', 'tool_analyzer.txt', 'critical_analysis.txt']:
-            filepath = os.path.join(initial_dir, filename)
-            if os.path.exists(filepath):
-                with open(filepath, 'r', encoding='utf-8') as f:
-                    context_parts.append(f"\n{'='*80}\n{filename.upper()}\n{'='*80}\n{f.read()}")
+        if os.path.exists(initial_dir):
+            for filename in ['academic_researcher.txt', 'industry_intelligence.txt', 'tool_analyzer.txt', 'critical_analysis.txt']:
+                filepath = os.path.join(initial_dir, filename)
+                if os.path.exists(filepath):
+                    with open(filepath, 'r', encoding='utf-8') as f:
+                        context_parts.append(f"\n{'='*80}\n{filename.upper()}\n{'='*80}\n{f.read()}")
 
-        # Load deep research if any
-        for i in range(1, self.deep_research_count + 1):
-            deep_dirs = [d for d in os.listdir(self.session_dir) if d.startswith(f"deep_research_{i}_")]
-            if deep_dirs:
-                deep_dir = os.path.join(self.session_dir, deep_dirs[0])
-                for filename in os.listdir(deep_dir):
-                    if filename.endswith('.txt'):
-                        with open(os.path.join(deep_dir, filename), 'r', encoding='utf-8') as f:
-                            context_parts.append(f"\n{'='*80}\nDEEP RESEARCH {i}: {filename.upper()}\n{'='*80}\n{f.read()}")
+        # Load deep research - supports both old and new folder structure
+        # Old: deep_research_1_Topic_Name/
+        # New: Clean_Episode_Name/
+        if self.session_dir and os.path.exists(self.session_dir):
+            # Find all subdirectories that contain research files (exclude session folder itself)
+            initial_folder_name = os.path.basename(self.initial_research_dir)
+            for subdir in os.listdir(self.session_dir):
+                subdir_path = os.path.join(self.session_dir, subdir)
+
+                # Skip if not a directory, or if it's the initial research folder
+                if not os.path.isdir(subdir_path) or subdir == initial_folder_name:
+                    continue
+
+                # Check if it's a research folder (has worker txt files)
+                if os.path.exists(os.path.join(subdir_path, "academic_researcher.txt")):
+                    # This is a deep research folder
+                    for filename in os.listdir(subdir_path):
+                        if filename.endswith('.txt'):
+                            with open(os.path.join(subdir_path, filename), 'r', encoding='utf-8') as f:
+                                context_parts.append(f"\n{'='*80}\nDEEP RESEARCH - {subdir}: {filename.upper()}\n{'='*80}\n{f.read()}")
 
         self.full_context = "\n".join(context_parts)
         return self.full_context
@@ -122,6 +180,120 @@ def print_status(status: str, message: str = ""):
         print(f"[{status}] {message}")
     else:
         print(f"[{status}]")
+
+
+def generate_episode_name(query: str, research_content: str = None) -> str:
+    """
+    Generate a clean episode name for research using LLM.
+
+    IMPORTANT: Episode names are used for:
+    1. Folder names in the file system
+    2. Episode titles in the knowledge graph
+    3. Future search and retrieval
+
+    Episode names should be:
+    - Concise (3-8 words)
+    - Descriptive of what was researched
+    - Keyword-focused (easy to find later)
+    - Professional (no verbose metadata)
+
+    Args:
+        query: The research query
+        research_content: Optional - actual research content to analyze
+
+    Returns:
+        Clean episode name (approved by user)
+    """
+
+    if research_content:
+        # Generate name from research content (retroactive naming)
+        prompt = f"""Based on this research content, generate a clean episode name.
+
+RESEARCH QUERY: {query}
+
+RESEARCH CONTENT (first 3000 chars):
+{research_content[:3000]}
+
+Episode names are CRITICAL for:
+1. File organization - folders are named after episodes
+2. Knowledge graph titles - users search by episode name
+3. Future discoverability - must contain key terms
+
+Generate a concise episode name (3-8 words) that:
+- Captures what was researched
+- Uses searchable keywords
+- Is professional and clean
+- Omits verbose metadata like "based on conversation" or "they want"
+
+Examples of GOOD episode names:
+- "Arthur AI product and market analysis"
+- "Downmarket ICP signals for Arthur AI"
+- "React performance optimization strategies"
+- "Kubernetes security best practices"
+
+Examples of BAD episode names:
+- "Based on the conversation, they want deep research on..." (verbose metadata)
+- "Research about some stuff" (vague)
+- "AI ML monitoring tools competitive landscape market analysis 2024" (too long)
+
+Respond with ONLY the episode name, nothing else."""
+    else:
+        # Generate name from query (prospective naming)
+        prompt = f"""Generate a clean episode name for this research query.
+
+RESEARCH QUERY: {query}
+
+Episode names are CRITICAL for:
+1. File organization - folders are named after episodes
+2. Knowledge graph titles - users search by episode name
+3. Future discoverability - must contain key terms
+
+Generate a concise episode name (3-8 words) that:
+- Captures what will be researched
+- Uses searchable keywords
+- Is professional and clean
+- Converts conversational queries into structured names
+
+Examples:
+Query: "arthur ai based on out nyc" → "Arthur AI product and market analysis"
+Query: "how to optimize react performance" → "React performance optimization strategies"
+Query: "kubernetes security best practices 2024" → "Kubernetes security best practices"
+
+Respond with ONLY the episode name, nothing else."""
+
+    response = anthropic_client.messages.create(
+        model="claude-sonnet-4-5",
+        max_tokens=100,
+        temperature=0.3,
+        messages=[{"role": "user", "content": prompt}]
+    )
+
+    suggested_name = ""
+    for block in response.content:
+        if block.type == "text":
+            suggested_name = block.text.strip()
+
+    # Show to user and get approval
+    print(f"\n{'='*80}")
+    print("EPISODE NAME GENERATION")
+    print(f"{'='*80}")
+    print(f"\nI suggest naming this episode: '{suggested_name}'")
+    print("\nThis name will be used for:")
+    print("  - Folder name in your file system")
+    print("  - Episode title in the knowledge graph")
+    print("  - Future search and retrieval")
+    print("\nYou can approve it or provide a different name.\n")
+
+    user_input = input("Episode name (press Enter to approve, or type a different name): ").strip()
+
+    if user_input:
+        final_name = user_input
+        print(f"[APPROVED] Using your name: '{final_name}'")
+    else:
+        final_name = suggested_name
+        print(f"[APPROVED] Using suggested name: '{final_name}'")
+
+    return final_name
 
 
 def tasking_conversation(session: ResearchSession) -> str:
@@ -285,6 +457,12 @@ Be specific about focus areas and what will be valuable for them."""
     approval = input("Type 'go' to start: ").strip().lower()
 
     if approval in ['go', 'yes', 'start', 'do it', 'research']:
+        # Generate clean episode name before creating filesystem
+        episode_name = generate_episode_name(session.query)
+
+        # Initialize filesystem with clean episode name
+        session.initialize_filesystem(episode_name)
+
         session.state = "RESEARCH"
         session.save_metadata()
         return "RESEARCH"
@@ -372,8 +550,8 @@ def run_research_phase(session: ResearchSession, research_dir: str = None) -> st
     research_type = "deep" if is_deep_research else "initial"
     parent_id = session.initial_episode_id if is_deep_research else None
 
-    # Commit research episode to graph
-    print_status("GRAPH", f"Writing {research_type} research episode to knowledge graph...")
+    # Commit research episodes to graph (one per worker)
+    print_status("GRAPH", f"Writing {research_type} research episodes to knowledge graph...")
     episode_result = asyncio.run(commit_research_episode(
         session=session,
         research_type=research_type,
@@ -384,13 +562,18 @@ def run_research_phase(session: ResearchSession, research_dir: str = None) -> st
     ))
 
     if episode_result and episode_result.get("status") == "success":
-        episode_id = episode_result.get("episode_name", "")
-        if is_deep_research:
-            session.deep_episode_ids.append(episode_id)
-            print_status("SUCCESS", f"Deep research episode created: {episode_id}")
-        else:
-            session.initial_episode_id = episode_id
-            print_status("SUCCESS", f"Initial research episode created: {episode_id}")
+        episode_names = episode_result.get("episode_names", [])
+        episode_count = episode_result.get("episode_count", 0)
+
+        # Store first episode name as representative ID
+        if episode_names:
+            representative_id = f"{session.episode_name} ({episode_count} worker episodes)"
+            if is_deep_research:
+                session.deep_episode_ids.append(representative_id)
+                print_status("SUCCESS", f"Deep research: {episode_count} episodes committed")
+            else:
+                session.initial_episode_id = representative_id
+                print_status("SUCCESS", f"Initial research: {episode_count} episodes committed")
     else:
         print_status("WARNING", "Graph write failed, but continuing")
 
@@ -553,12 +736,15 @@ Respond with ONLY:
                     confirmation = block.text.strip().upper()
 
             if "YES" in confirmation:
-                    # Create deep research dir
-                    deep_dir = session.create_deep_research_dir(topic)
+                    # Generate clean episode name for this deep research
+                    episode_name = generate_episode_name(topic)
+
+                    # Create deep research dir with clean name
+                    deep_dir = session.create_deep_research_dir(episode_name)
 
                     # Temporarily change state
                     old_query = session.query
-                    session.query = topic
+                    session.query = episode_name
 
                     # Run research
                     run_research_phase(session, research_dir=deep_dir)
@@ -677,7 +863,14 @@ async def commit_research_episode(
     parent_episode_id: str = None
 ) -> dict:
     """
-    Commit a research episode (initial or deep research) to the knowledge graph.
+    Commit research episodes to knowledge graph - ONE EPISODE PER WORKER for optimal chunking.
+
+    Based on Graphiti best practices:
+    - Episode size should be 1,000-2,000 tokens for rich entity extraction
+    - Smaller episodes = more granular, detailed entity extraction
+    - Larger episodes = sparse, high-level extraction
+
+    Worker reports are ~1,400-2,600 tokens each (optimal range).
 
     Args:
         session: Current research session
@@ -688,43 +881,81 @@ async def commit_research_episode(
         parent_episode_id: ID of parent episode (for deep research)
 
     Returns:
-        Dict with status and episode_name
+        Dict with status and list of episode_names
     """
-    # Build focused episode body
-    episode_body = f"""Research Query: {session.query}
+    from datetime import datetime
 
-Type: {research_type.title()} Research
+    # Generate metadata for grouping episodes
+    session_name = session.episode_name or session.query
+    safe_session_name = session_name.replace(" ", "_").replace("/", "_")
+    timestamp = datetime.now().isoformat()
 
-Synthesized Narrative:
-{narrative}
+    # Group ID hierarchy: helldiver_research/{session}/{type}
+    group_id = f"helldiver_research/{safe_session_name}/{research_type}"
 
-Critical Analysis:
-{critical_analysis}
+    # Commit one episode per worker (optimal chunking)
+    worker_mapping = {
+        "academic_researcher": "Academic Research",
+        "industry_intelligence": "Industry Intelligence",
+        "tool_analyzer": "Tool Analysis",
+        "critical_analysis": "Critical Analysis"  # Critical analyst gets own episode too
+    }
 
-Worker Summaries:
-"""
+    episode_results = []
 
-    # Add brief worker summaries (first 500 chars of each)
-    for worker_id, findings in worker_results.items():
-        summary = findings[:500] + "..." if len(findings) > 500 else findings
-        episode_body += f"\n{worker_id.upper()}: {summary}\n"
+    # Commit worker episodes
+    for worker_id, worker_name in worker_mapping.items():
+        if worker_id == "critical_analysis":
+            findings = critical_analysis
+        else:
+            findings = worker_results.get(worker_id, "")
 
-    if parent_episode_id:
-        episode_body += f"\n\nThis deep research builds on: {parent_episode_id}"
+        if not findings:
+            continue
 
-    # Commit to graph
-    result = await graphiti_client.commit_episode(
-        agent_id="helldiver",
-        original_query=session.query,
-        tasking_context={
-            "type": research_type,
-            "parent_episode": parent_episode_id if parent_episode_id else "root"
-        },
-        findings_narrative=episode_body,
-        user_context=f"Helldiver {research_type} research"
-    )
+        # Episode name: "{session_name} - {worker_name}"
+        episode_name = f"{session_name} - {worker_name}"
 
-    return result
+        # Episode body: Just the worker findings (focused, optimal size)
+        episode_body = f"""Research Query: {session.query}
+Research Type: {research_type.title()} Research
+Worker Role: {worker_name}
+
+{findings}"""
+
+        if parent_episode_id:
+            episode_body += f"\n\nThis deep research builds on initial research: {parent_episode_id}"
+
+        # Source description: Links episodes from same session
+        source_description = f"{research_type.title()} Research | Session: {session_name} | {timestamp}"
+
+        # Commit episode
+        result = await graphiti_client.commit_episode(
+            agent_id="helldiver",
+            original_query=episode_name,  # Use full episode name as query
+            tasking_context={
+                "type": research_type,
+                "worker": worker_name,
+                "session": session_name,
+                "parent_episode": parent_episode_id if parent_episode_id else "root",
+                "group_id": group_id,
+                "source_description": source_description
+            },
+            findings_narrative=episode_body,
+            user_context=source_description
+        )
+
+        if result and result.get("status") == "success":
+            episode_results.append(result.get("episode_name", episode_name))
+            print_status("EPISODE", f"✓ {episode_name}")
+
+    # Return summary
+    return {
+        "status": "success" if episode_results else "error",
+        "episode_names": episode_results,
+        "episode_count": len(episode_results),
+        "message": f"Committed {len(episode_results)} worker episodes"
+    }
 
 
 def commit_to_graph_phase(session: ResearchSession) -> str:
@@ -1228,7 +1459,7 @@ def load_existing_session(session_dir: str) -> ResearchSession:
     # Reconstruct session object
     session = ResearchSession.__new__(ResearchSession)
     session.session_dir = session_dir
-    session.initial_research_dir = os.path.join(session_dir, "initial_research")
+    session.episode_name = metadata.get('episode_name', None)
     session.state = metadata.get('state', 'REFINEMENT')  # Default to refinement
     session.query = metadata.get('query', '')
     session.original_query = metadata.get('original_query', metadata.get('query', ''))  # Fallback to query if not set
@@ -1236,6 +1467,24 @@ def load_existing_session(session_dir: str) -> ResearchSession:
     session.deep_research_count = metadata.get('deep_research_count', 0)
     session.initial_episode_id = metadata.get('initial_episode_id', '')
     session.deep_episode_ids = metadata.get('deep_episode_ids', [])
+
+    # Detect initial research directory (supports both old and new structure)
+    # New structure: context/Episode_Name/Episode_Name/
+    # Old structure: context/session_research_timestamp/initial_research/
+    if session.episode_name:
+        safe_name = session.episode_name.replace(" ", "_").replace("/", "_")
+        session.initial_research_dir = os.path.join(session_dir, safe_name)
+    else:
+        # Fallback to old "initial_research" folder for backward compatibility
+        session.initial_research_dir = os.path.join(session_dir, "initial_research")
+
+    # If neither exists, try to detect any subdirectory with research files
+    if not os.path.exists(session.initial_research_dir):
+        for subdir in os.listdir(session_dir):
+            subdir_path = os.path.join(session_dir, subdir)
+            if os.path.isdir(subdir_path) and os.path.exists(os.path.join(subdir_path, "academic_researcher.txt")):
+                session.initial_research_dir = subdir_path
+                break
 
     # Load narrative
     narrative_file = os.path.join(session_dir, "narrative.txt")
