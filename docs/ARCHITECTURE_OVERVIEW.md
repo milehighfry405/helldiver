@@ -28,13 +28,14 @@ context/
     │   ├── academic_researcher.txt          # ~1,900 tokens
     │   ├── industry_intelligence.txt        # ~2,500 tokens
     │   ├── tool_analyzer.txt                # ~2,200 tokens
-    │   └── critical_analysis.txt            # ~1,400 tokens
+    │   ├── critical_analysis.txt            # ~1,400 tokens
+    │   └── narrative.txt                    # Synthesized findings for this research
     ├── {Deep_Research_Topic}/               # Deep research (same structure)
-    │   └── (same 4 worker files)
-    ├── session.json                         # Session metadata
-    ├── narrative.txt                        # Synthesized findings (for user)
-    ├── refinement_context.json              # Full conversation log
-    ├── refinement_context.txt               # Human-readable transcript
+    │   ├── (same 4 worker files)
+    │   └── narrative.txt                    # Synthesized findings for this deep research
+    ├── session.json                         # Session metadata (includes tasking context)
+    ├── refinement_context.json              # Full conversation log (tasking + refinement)
+    ├── refinement_context.txt               # Human-readable transcript (tasking + refinement)
     └── refinement_distilled.txt             # Graph-optimized mental models (~1,500 tokens)
 ```
 
@@ -316,11 +317,15 @@ cat context/{Session_Name}/session.json
 2. LLM-generated episode names with user approval
 3. One-episode-per-worker for optimal Graphiti extraction
 4. Hierarchical metadata grouping for graph queries
+5. **NEW (Oct 14, 2025)**: Narrative.txt files now saved per-research-folder instead of session root
+6. **NEW (Oct 14, 2025)**: Tasking context (initial conversation) now saved in refinement logs
 
 **Impact**:
 - Better folder organization (human-readable names)
 - Richer graph extraction (optimal token counts)
 - More queryable graph structure (hierarchical group_id)
+- Complete conversation history preserved (tasking + refinement)
+- Each research has its own narrative (no overwriting)
 
 ### Previous State
 

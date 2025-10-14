@@ -60,10 +60,11 @@ helldiver/
 ├── context/                    # Research sessions (gitignored except migration session)
 │   └── {Episode_Name}/        # Session folder = initial episode name
 │       ├── {Episode_Name}/    # Initial research (worker outputs)
+│       │   └── narrative.txt  # Synthesized findings for initial research
 │       ├── {Deep_Topic}/      # Deep research folders (clean names)
-│       ├── session.json       # Session metadata
-│       ├── narrative.txt      # Synthesized findings
-│       └── refinement_*.txt   # Refinement logs
+│       │   └── narrative.txt  # Synthesized findings for deep research
+│       ├── session.json       # Session metadata (includes tasking context)
+│       └── refinement_*.txt/json  # Refinement logs (includes tasking + refinement)
 ├── docs/
 │   ├── AI_ONBOARDING.md       # Primary entry point for AI assistants
 │   ├── ARCHITECTURE_OVERVIEW.md
@@ -267,6 +268,8 @@ ls context/{Session_Name}/{Episode_Name}/
 - LLM-generated episode names with user approval
 - One-episode-per-worker for optimal Graphiti extraction
 - Hierarchical metadata grouping for graph queries
+- **NEW (Oct 14, 2025)**: Narrative.txt files saved per-research-folder (no overwriting)
+- **NEW (Oct 14, 2025)**: Tasking conversation now preserved in refinement logs
 
 **Next Steps**:
 - Add custom entity types for Graphiti (Company, Tool, Signal, Person)

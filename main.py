@@ -535,19 +535,27 @@ def run_research_phase(session: ResearchSession, research_dir: str = None) -> st
     session.narrative = narrative
     session.research_findings = worker_results
 
-    # Save narrative
-    narrative_file = os.path.join(session.session_dir, "narrative.txt")
+    # Determine if this is initial or deep research
+    is_deep_research = research_dir != session.initial_research_dir
+    research_type = "deep" if is_deep_research else "initial"
+
+    # Save narrative in the research folder (both initial and deep research)
+    narrative_file = os.path.join(research_dir, "narrative.txt")
+
     with open(narrative_file, 'w', encoding='utf-8') as f:
+        # Add header to identify which research this narrative belongs to
+        folder_name = os.path.basename(research_dir)
+        if is_deep_research:
+            f.write(f"DEEP RESEARCH NARRATIVE: {folder_name}\n")
+        else:
+            f.write(f"INITIAL RESEARCH NARRATIVE: {folder_name}\n")
+        f.write("="*80 + "\n\n")
         f.write(narrative)
 
     print()
     print_header("Research Complete!")
     print(narrative)
     print()
-
-    # Determine if this is initial or deep research
-    is_deep_research = research_dir != session.initial_research_dir
-    research_type = "deep" if is_deep_research else "initial"
     parent_id = session.initial_episode_id if is_deep_research else None
 
     # Commit research episodes to graph (one per worker)
@@ -1411,29 +1419,46 @@ Now extract the signal from the conversation above."""
 
 def save_refinement_context(session: ResearchSession):
     """Save refinement context to session directory"""
-    if not session.refinement_log:
+    if not session.refinement_log and not session.tasking_context:
         return
 
-    # Save full transcript (for audit trail)
+    # Save full transcript (for audit trail) INCLUDING TASKING CONVERSATION
     refinement_file = os.path.join(session.session_dir, "refinement_context.json")
     with open(refinement_file, 'w', encoding='utf-8') as f:
         json.dump({
             "timestamp": datetime.now().isoformat(),
+            "tasking_context": session.tasking_context,  # Include initial tasking chat
             "conversation": session.refinement_log,
-            "note": "Full conversation transcript - AUDIT TRAIL ONLY. See refinement_distilled.txt for signal."
+            "note": "Full conversation transcript including tasking phase - AUDIT TRAIL ONLY. See refinement_distilled.txt for signal."
         }, f, indent=2)
 
-    # Save full transcript (human-readable for audit)
+    # Save full transcript (human-readable for audit) INCLUDING TASKING CONVERSATION
     readable_file = os.path.join(session.session_dir, "refinement_context.txt")
     with open(readable_file, 'w', encoding='utf-8') as f:
         f.write("REFINEMENT CONTEXT - FULL TRANSCRIPT\n")
         f.write("="*80 + "\n")
-        f.write("Full conversation for audit trail.\n")
+        f.write("Full conversation for audit trail including initial tasking phase.\n")
         f.write("Distilled context created at commit time.\n")
         f.write("="*80 + "\n\n")
 
+        # Include tasking conversation at the top
+        if session.tasking_context and "conversation_history" in session.tasking_context:
+            f.write("TASKING PHASE (Initial Conversation)\n")
+            f.write("="*80 + "\n\n")
+
+            for i, msg in enumerate(session.tasking_context["conversation_history"], 1):
+                role = msg.get("role", "unknown").upper()
+                content = msg.get("content", "")
+                f.write(f"--- Tasking Turn {i} ---\n")
+                f.write(f"{role}: {content}\n")
+                f.write("\n" + "-"*80 + "\n")
+
+            f.write("\n\nREFINEMENT PHASE (Post-Research Conversation)\n")
+            f.write("="*80 + "\n\n")
+
+        # Include refinement conversation
         for i, turn in enumerate(session.refinement_log, 1):
-            f.write(f"\n--- Turn {i} ({turn['timestamp']}) ---\n")
+            f.write(f"\n--- Refinement Turn {i} ({turn['timestamp']}) ---\n")
             f.write(f"USER: {turn['user_input']}\n\n")
             f.write(f"ASSISTANT: {turn['assistant_response']}\n")
             f.write("\n" + "-"*80 + "\n")
