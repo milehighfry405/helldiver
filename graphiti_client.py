@@ -4,15 +4,23 @@ Graphiti knowledge graph integration for episodic memory storage.
 
 import os
 
+# Check for force mock mode (for testing)
+FORCE_MOCK_MODE = os.environ.get("GRAPHITI_MOCK_MODE", "").lower() in ["true", "1", "yes"]
+
 # Try to import Graphiti, fall back to mock if unavailable
-try:
-    from graphiti_core import Graphiti
-    GRAPHITI_AVAILABLE = True
-except Exception as e:
-    print(f"Warning: Graphiti import failed: {e}")
-    print("Using mock Graphiti client. Graph writes will be simulated.")
+if FORCE_MOCK_MODE:
+    print("WARNING: FORCE_MOCK_MODE enabled - all graph writes will be simulated")
     GRAPHITI_AVAILABLE = False
     Graphiti = None
+else:
+    try:
+        from graphiti_core import Graphiti
+        GRAPHITI_AVAILABLE = True
+    except Exception as e:
+        print(f"Warning: Graphiti import failed: {e}")
+        print("Using mock Graphiti client. Graph writes will be simulated.")
+        GRAPHITI_AVAILABLE = False
+        Graphiti = None
 
 
 # Group ID for all Helldiver research sessions
@@ -24,15 +32,21 @@ class GraphitiClient:
 
     def __init__(self):
         """Initialize Graphiti connection"""
-        if GRAPHITI_AVAILABLE:
-            self.graphiti = Graphiti(
-                uri=os.environ.get("NEO4J_URI", "neo4j://127.0.0.1:7687"),
-                user=os.environ.get("NEO4J_USER", "neo4j"),
-                password=os.environ.get("NEO4J_PASSWORD", "password")
-            )
+        if GRAPHITI_AVAILABLE and not FORCE_MOCK_MODE:
+            try:
+                self.graphiti = Graphiti(
+                    uri=os.environ.get("NEO4J_URI", "bolt://127.0.0.1:7687"),
+                    user=os.environ.get("NEO4J_USER", "neo4j"),
+                    password=os.environ.get("NEO4J_PASSWORD", "password")
+                )
+                print("SUCCESS: Graphiti client connected to Neo4j")
+            except Exception as e:
+                print(f"WARNING: Failed to connect to Neo4j: {e}")
+                print("WARNING: Falling back to mock mode")
+                self.graphiti = None
         else:
             self.graphiti = None
-            print("⚠️ Graphiti client initialized in mock mode")
+            print("WARNING: Graphiti client initialized in mock mode")
 
     async def commit_episode(
         self,
@@ -47,79 +61,89 @@ class GraphitiClient:
 
         Args:
             agent_id: ID of the agent that conducted research
-            original_query: The original research query
-            tasking_context: Dictionary with tasking conversation details
-            findings_narrative: The full narrative findings
-            user_context: Optional user-provided context (e.g., "for AI agent memory")
+            original_query: The episode name (e.g., "Session Name - Worker Role")
+            tasking_context: Dictionary with metadata (type, worker, session, group_id, etc.)
+            findings_narrative: The full episode body
+            user_context: Source description for linking episodes
 
         Returns:
             Dictionary with status and any errors
         """
         try:
-            # Extract key information from tasking context
-            refinement_turns = tasking_context.get('refinement_turns', 0)
-            summary = tasking_context.get('summary', 'No specific tasking details')
-            weighting = tasking_context.get('weighting', '')
+            # Extract metadata from tasking_context
+            research_type = tasking_context.get('type', 'unknown')
+            worker_name = tasking_context.get('worker', 'Unknown Worker')
+            session_name = tasking_context.get('session', 'Unknown Session')
+            group_id = tasking_context.get('group_id', GROUP_ID)
+            source_description = tasking_context.get('source_description', 'Helldiver research')
+            parent_episode = tasking_context.get('parent_episode', 'root')
 
-            # Extract key takeaway from narrative (first sentence often works)
-            key_takeaway = findings_narrative.split('.')[0] if findings_narrative else "Research completed"
-
-            # Construct episodic narrative for Graphiti
-            episode_body = f"""User researched: {original_query}
-
-Context: {user_context if user_context else 'General research'}
-
-Tasking details: {summary}
-
-Key findings:
-{findings_narrative}
-
-Evolution: User conducted research, """
-
-            # Add refinement evolution if applicable
-            if refinement_turns > 0:
-                episode_body += f"refined understanding through {refinement_turns} conversation turns, "
-
-            if weighting:
-                episode_body += f"with {weighting} applied to synthesis, "
-
-            episode_body += f"and concluded that {key_takeaway}."
-
-            # Create episode name
-            episode_name = f"Research: {original_query[:50]}"
+            # Episode name comes from original_query (already formatted as "Session - Worker")
+            episode_name = original_query
 
             # Add episode to Graphiti
             if self.graphiti:
-                await self.graphiti.add_episode(
-                    name=episode_name,
-                    episode_body=episode_body,
-                    group_id=GROUP_ID,
-                    source="text",
-                    source_description="Helldiver research mission"
-                )
+                try:
+                    from datetime import datetime
 
-                return {
-                    "status": "success",
-                    "episode_name": episode_name,
-                    "message": f"✓ Committed to Graphiti as '{episode_name}'"
-                }
+                    await self.graphiti.add_episode(
+                        name=episode_name,
+                        episode_body=findings_narrative,
+                        source_description=source_description,
+                        reference_time=datetime.now(),
+                        group_id=group_id
+                    )
+
+                    return {
+                        "status": "success",
+                        "episode_name": episode_name,
+                        "message": f"✓ Committed to Graphiti as '{episode_name}'"
+                    }
+                except Exception as graph_error:
+                    # Graph write failed - show detailed error
+                    error_msg = str(graph_error)
+                    print(f"\n[X] GRAPH WRITE ERROR:")
+                    print(f"Error: {error_msg}")
+                    print(f"Episode: {episode_name}")
+                    return {
+                        "status": "error",
+                        "error": error_msg,
+                        "message": f"Error writing to graph: {error_msg}"
+                    }
             else:
-                # Mock mode - just log what would have been saved
-                print(f"\n📝 MOCK GRAPH WRITE:")
+                # Mock mode - show detailed simulated write
+                print(f"\n[MOCK] GRAPH WRITE:")
+                print(f"{'='*80}")
                 print(f"Episode Name: {episode_name}")
-                print(f"Episode Body:\n{episode_body[:500]}...")
+                print(f"Research Type: {research_type}")
+                print(f"Worker: {worker_name}")
+                print(f"Session: {session_name}")
+                print(f"Group ID: {group_id}")
+                print(f"Parent Episode: {parent_episode}")
+                print(f"Source Description: {source_description}")
+                print(f"{'='*80}")
+                print(f"Episode Body (first 500 chars):")
+                print(findings_narrative[:500])
+                print("...")
+                print(f"{'='*80}\n")
 
                 return {
                     "status": "success",
                     "episode_name": episode_name,
-                    "message": f"✓ [MOCK] Committed to Graphiti as '{episode_name}' (Graphiti unavailable - simulated write)"
+                    "message": f"[MOCK] Committed to Graphiti as '{episode_name}'"
                 }
 
         except Exception as e:
+            # Unexpected error in commit_episode function itself
+            error_msg = str(e)
+            print(f"\n[ERROR] UNEXPECTED ERROR IN commit_episode:")
+            print(f"Error: {error_msg}")
+            import traceback
+            traceback.print_exc()
             return {
                 "status": "error",
-                "error": str(e),
-                "message": f"Error writing to graph: {str(e)}"
+                "error": error_msg,
+                "message": f"Error in commit function: {error_msg}"
             }
 
     async def search_episodes(self, query: str, limit: int = 5) -> list:

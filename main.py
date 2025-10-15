@@ -8,17 +8,29 @@ The agent maintains goal awareness and guides toward knowledge graph commit.
 import asyncio
 import json
 import os
+import sys
 import time
 from datetime import datetime
 from dotenv import load_dotenv
 from anthropic import Anthropic
 
-from graphiti_client import GraphitiClient
+# Parse command line args BEFORE importing graphiti_client
+# (so --mock flag can set environment variable before GraphitiClient initializes)
+import argparse
+parser = argparse.ArgumentParser(description="Helldiver Research Agent")
+parser.add_argument('--refine', type=str, help='Resume existing session from folder path')
+parser.add_argument('--mock', action='store_true', help='Force mock mode for graph writes (testing)')
+args = parser.parse_args()
+
+# Set mock mode BEFORE importing graphiti_client
+if args.mock:
+    os.environ["GRAPHITI_MOCK_MODE"] = "true"
 
 # Load environment
 load_dotenv()
 
-# Initialize clients
+# Initialize clients (graphiti_client will check GRAPHITI_MOCK_MODE env var)
+from graphiti_client import GraphitiClient
 anthropic_client = Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
 graphiti_client = GraphitiClient()
 
@@ -901,8 +913,9 @@ async def commit_research_episode(
     safe_session_name = session_name.replace(" ", "_").replace("/", "_")
     timestamp = datetime.now().isoformat()
 
-    # Group ID hierarchy: helldiver_research/{session}/{type}
-    group_id = f"helldiver_research/{safe_session_name}/{research_type}"
+    # Group ID hierarchy: helldiver_research_{session}_{type}
+    # (Graphiti requires alphanumeric, dashes, or underscores only - no slashes)
+    group_id = f"helldiver_research_{safe_session_name}_{research_type}"
 
     # Commit one episode per worker (optimal chunking)
     worker_mapping = {
@@ -1565,8 +1578,31 @@ def load_existing_session(session_dir: str) -> ResearchSession:
         print_status("CONTEXT", f"Loaded {len(session.distilled_context)} characters of distilled refinement context")
 
     # Check if research episodes need to be retroactively committed
-    needs_initial_commit = not session.initial_episode_id and os.path.exists(os.path.join(session_dir, "narrative.txt"))
+    # Try both old location (root) and new location (episode subfolder)
+    old_location = os.path.join(session_dir, "narrative.txt")
+
+    # Try both raw episode name and safe episode name (with spaces replaced by underscores)
+    new_location = None
+    if session.episode_name:
+        # Try exact episode name first
+        new_location = os.path.join(session_dir, session.episode_name, "narrative.txt")
+        # If that doesn't exist, try safe name (spaces -> underscores)
+        if not os.path.exists(new_location):
+            safe_name = session.episode_name.replace(" ", "_").replace("/", "_")
+            new_location = os.path.join(session_dir, safe_name, "narrative.txt")
+
+    narrative_exists = os.path.exists(old_location) or (new_location and os.path.exists(new_location))
+    needs_initial_commit = not session.initial_episode_id and narrative_exists
     needs_deep_commits = session.deep_research_count > len(session.deep_episode_ids)
+
+    # Debug logging
+    if args.mock:
+        print(f"[DEBUG] Old location exists: {os.path.exists(old_location)} - {old_location}")
+        if new_location:
+            print(f"[DEBUG] New location exists: {os.path.exists(new_location)} - {new_location}")
+        print(f"[DEBUG] initial_episode_id: '{session.initial_episode_id}'")
+        print(f"[DEBUG] needs_initial_commit: {needs_initial_commit}")
+        print(f"[DEBUG] needs_deep_commits: {needs_deep_commits}")
 
     if needs_initial_commit or needs_deep_commits:
         print_status("MIGRATION", "Detected research from before multi-episode feature...")
@@ -1591,14 +1627,36 @@ async def retroactive_commit_research(session: ResearchSession, session_dir: str
 
     # Commit initial research if needed
     if not session.initial_episode_id:
-        narrative_file = os.path.join(session_dir, "narrative.txt")
+        # Find initial research directory (supports both old and new structure)
+        initial_dir = None
+
+        # Try old structure first
+        old_structure = os.path.join(session_dir, "initial_research")
+        if os.path.exists(old_structure):
+            initial_dir = old_structure
+        # Try new structure (episode name folder)
+        elif session.episode_name:
+            safe_name = session.episode_name.replace(" ", "_").replace("/", "_")
+            new_structure = os.path.join(session_dir, safe_name)
+            if os.path.exists(new_structure):
+                initial_dir = new_structure
+
+        if not initial_dir:
+            print_status("ERROR", "Could not find initial research directory")
+            return
+
+        # Load narrative from initial research folder (new structure) or root (old structure)
+        narrative_file = os.path.join(initial_dir, "narrative.txt")
+        if not os.path.exists(narrative_file):
+            # Try old location (root)
+            narrative_file = os.path.join(session_dir, "narrative.txt")
+
         if os.path.exists(narrative_file):
             with open(narrative_file, 'r', encoding='utf-8') as f:
                 narrative = f.read()
 
             # Load worker results
             worker_results = {}
-            initial_dir = os.path.join(session_dir, "initial_research")
             for filename in ['academic_researcher.txt', 'industry_intelligence.txt', 'tool_analyzer.txt']:
                 filepath = os.path.join(initial_dir, filename)
                 if os.path.exists(filepath):
@@ -1612,23 +1670,10 @@ async def retroactive_commit_research(session: ResearchSession, session_dir: str
                 with open(critical_file, 'r', encoding='utf-8') as f:
                     critical_analysis = f.read()
 
-            # Use original_query field (not current query which may be overwritten by deep research)
-            # For old sessions without original_query, try to infer or prompt
-            if not session.original_query or session.original_query == session.query:
-                # Query was lost - try to infer from narrative or prompt user
-                print("\n" + "="*80)
-                print("MIGRATION NOTE: Original research query not found in session metadata.")
-                print("This happens with old sessions from before the multi-episode feature.")
-                print("="*80)
-                print(f"\nCurrent query in session: {session.query[:200]}...")
-                print("\nThis looks like a deep research query (verbose/structured).")
-                user_original = input("\nWhat was the ORIGINAL research query? (e.g., 'arthur ai based on out nyc'): ").strip()
-                if user_original:
-                    session.original_query = user_original
-                    print(f"[MIGRATION] Using original query: {user_original}")
-                else:
-                    print("[MIGRATION] No original query provided, using current query")
-                    session.original_query = session.query
+            # Use original_query field (guaranteed to exist in new sessions)
+            # For old sessions, if original_query doesn't exist, use query
+            if not session.original_query:
+                session.original_query = session.query
 
             # Temporarily set correct query for episode commit
             old_query = session.query
@@ -1713,11 +1758,11 @@ async def retroactive_commit_research(session: ResearchSession, session_dir: str
 
 def main():
     """Main conversational loop"""
-    import argparse
+    # Args already parsed at module level (needed for --mock flag to work)
+    global args
 
-    parser = argparse.ArgumentParser(description="Helldiver Research Agent")
-    parser.add_argument('--refine', type=str, help='Resume existing session from folder path')
-    args = parser.parse_args()
+    if args.mock:
+        print_status("MOCK MODE", "Graph writes will be simulated (not written to Neo4j)")
 
     print_header("Welcome to Helldiver Research Agent")
 
