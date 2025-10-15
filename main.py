@@ -760,6 +760,9 @@ Respond with ONLY:
                     # Restore query
                     session.query = old_query
 
+                    # Save metadata after deep research completes (updates deep_research_count and deep_episode_ids)
+                    session.save_metadata()
+
                     # Reload context with new research
                     session.load_research_context()
                     print_status("UPDATED", "Research context updated with new findings\n")
