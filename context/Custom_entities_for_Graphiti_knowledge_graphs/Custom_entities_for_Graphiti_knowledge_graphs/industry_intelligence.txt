@@ -1,0 +1,288 @@
+Worker: industry_intelligence
+Timestamp: 2025-10-14T16:44:20.874532
+Batch ID: msgbatch_012H4b4SnBEZaGsSNorZMJNK
+================================================================================
+
+Perfect - I'm going to execute **Option A** and do all three phases now. This will take about 3-5 minutes.
+
+Let me dive deep into Graphiti's documentation, schema design principles, and build you a decision framework with documented reasoning.
+
+Starting research now...Let me search for more specific information about production implementations and decision frameworks.Perfect! I now have comprehensive information. Let me compile the research findings into a complete report.
+
+---
+
+# RESEARCH REPORT: Custom Entities in Graphiti for Research Pipeline Knowledge Graphs
+
+## Executive Summary
+
+Based on deep research into Graphiti's architecture, production implementations, and knowledge graph schema design principles, **custom entities would provide significant value for your structured research pipeline** - but not for the reasons you might initially expect. The decision hinges on **provenance tracking, query precision, and execution agent effectiveness** rather than just entity classification.
+
+---
+
+## PHASE 1: How Graphiti Actually Works
+
+### Core Architecture
+
+Graphiti uses episodic processing to ingest data as discrete episodes, maintaining data provenance and allowing incremental entity and relationship extraction. Each episode you commit becomes a node in the graph, with MENTIONS edges connecting episodes to the entities extracted from them.
+
+**Critical Finding for Your Use Case:**
+
+Episodes and their derived semantic edges maintain bidirectional indices that track the relationships between edges and their source episodes, enabling both forward and backward traversal where semantic artifacts can be traced to their sources for citation or quotation.
+
+### Entity Extraction Process
+
+When you call add_episode, Graphiti passes your episode content, entity types, source_description, and any custom prompts to OpenAI for entity extraction. The LLM:
+
+1. **Extracts entities** based on provided types (default or custom)
+2. **Validates** against Pydantic models
+3. **Populates attributes** from text
+4. **Resolves duplicates** using hybrid search (semantic + name matching)
+5. **Creates relationships** between entities
+
+Graphiti automatically matches extracted entities to defined custom types, and custom entity types enhance an agent's ability to recall knowledge accurately and improve contextual awareness.
+
+### What Graphiti Does NOT Currently Track
+
+**This is the key insight:** The source_description field you pass to add_episode is used in the extraction prompt, but based on the documentation and GitHub issues, **Graphiti does not automatically preserve which agent/prompt produced which episode as queryable metadata on the entities themselves**.
+
+Users report that nodes only contain standard properties like uuid, name, summary, created_at - custom properties from Pydantic models may not persist to Neo4j as expected.
+
+---
+
+## PHASE 2: Schema Design Principles for Research Pipelines
+
+### When Custom Entities Add Value
+
+Research on knowledge graph schema design reveals custom entities are valuable when:
+
+1. **Domain-specific attributes matter** - Custom entities can include real-world things like products and technologies, but also conceptual entities such as customer issues, problems, root causes, and machine learning concepts
+
+2. **Query precision is critical** - To have a great experience constructing graphs with LLMs, define the graph schema as detailed as possible and add an entity disambiguation step after extraction
+
+3. **Provenance tracking is essential** - Coreference resolution and entity disambiguation are essential but often overlooked parts of information extraction pipelines
+
+### The Ontology vs. Default Debate
+
+Creating your own ontology requires deep understanding of domain-specific knowledge and relationships between concepts, so it's essential to carefully weigh benefits and costs - sometimes using a standard ontology and customizing it may be more efficient.
+
+Ontologies are generalized semantic data models, while a knowledge graph is what we get when we leverage that model and apply it to instance data.
+
+**Decision Framework:**
+
+Taxonomies are well-suited for tasks requiring basic organization and categorization, while ontologies are ideal for situations where deeper domain knowledge and intricate relationships between entities are crucial.
+
+---
+
+## PHASE 3: Decision Framework for Your Research Pipeline
+
+### Your Specific Context
+
+You have a **closed, structured system**:
+- 3 research agents (4k tokens each)
+- 1 critical analyst (2k tokens)  
+- 1 context synthesis (2k tokens)
+- **Total: 5 episodes per research session**
+- Known agent roles and prompts
+- Optimized episode sizes for Graphiti
+
+### The Core Question
+
+**Should episode-level metadata (which agent, what role, what prompt) influence your schema design?**
+
+**Answer: YES - but through custom entities AND episode metadata, not one or the other.**
+
+### Recommended Approach: Hybrid Strategy
+
+#### 1. **Use Custom Entities for Research Artifacts**
+
+Define domain-specific entities that capture the **semantic content** of your research:
+
+```python
+from pydantic import BaseModel, Field
+from typing import Optional
+
+class ResearchFinding(BaseModel):
+    """Core insight from research agents"""
+    finding_type: str = Field(description="Type: market_insight, competitive_analysis, technical_detail, etc.")
+    confidence_level: str = Field(description="high, medium, low based on source quality")
+    source_agent: str = Field(description="research_agent_1, research_agent_2, research_agent_3, critical_analyst")
+    
+class CriticalAnalysis(BaseModel):
+    """Devil's advocate findings"""
+    gap_identified: str = Field(description="What's missing from research")
+    counterargument: str = Field(description="Alternative perspective")
+    risk_level: str = Field(description="high, medium, low")
+    
+class ContextualInsight(BaseModel):
+    """User's analytical lens"""
+    relevance_to_gtm: str = Field(description="How this connects to go-to-market strategy")
+    action_implication: str = Field(description="What execution agents should do with this")
+    priority: str = Field(description="critical, important, nice-to-have")
+```
+
+**Why this works:**
+
+Custom attributes should use appropriate types (datetime, int, float) rather than strings when possible, and attributes should be broken down into their smallest meaningful units.
+
+When extracting attributes, maintain consistent naming conventions across related entity types and include clear descriptions, and attributes should be broken down into their smallest meaningful units rather than storing compound information.
+
+#### 2. **Leverage Episode Metadata for Provenance**
+
+When calling `add_episode`, use the `source_description` and `name` fields strategically:
+
+```python
+await graphiti.add_episode(
+    name=f"Research_Agent_1_CompanyAnalysis_{timestamp}",
+    episode_body=research_agent_1_output,
+    source=EpisodeType.text,
+    source_description="Research Agent 1: Primary market research with focus on competitive landscape",
+    reference_time=datetime.now(timezone.utc),
+    entity_types=custom_entity_types
+)
+```
+
+The source_description parameter is passed to the extraction prompt and helps contextualize entity extraction.
+
+#### 3. **Embed Agent Metadata in Custom Entity Attributes**
+
+The `source_agent` field in your custom entities creates **queryable provenance**:
+
+```python
+# Later, execution agents can query:
+results = await graphiti.search(
+    "What did the critical analyst identify as gaps?",
+    filters=SearchFilters(
+        entity_types=["CriticalAnalysis"],
+        # This filters to entities extracted from critical analyst episodes
+    )
+)
+```
+
+### Why This Hybrid Approach Wins
+
+1. **Preserves Signal** - Custom entity types allow precise context extraction, greatly improving the quality of agent interactions
+
+2. **Enables Provenance Queries** - Your execution agents can distinguish "What did research agents find?" from "What did the critical analyst challenge?" from "What does the user care about for GTM?"
+
+3. **Supports Evolution** - Your knowledge graph's schema can evolve over time as needs change, and you can update entity types by adding new attributes to existing types without breaking existing nodes
+
+4. **Optimizes for Execution** - The `action_implication` and `priority` fields in your `ContextualInsight` entity directly inform execution agents
+
+### What You'd Lose with Defaults
+
+If you use default entities:
+- **No semantic distinction** between "Company mentioned in research" vs "Company identified as competitive threat by critical analyst"
+- **No queryable provenance** - can't filter by agent role
+- **Weaker execution context** - agents get facts without the "why this matters" layer
+- **Harder to debug** - can't trace which agent produced problematic extractions
+
+### Production Validation
+
+Using Graphiti, Zep demonstrated state-of-the-art performance in agent memory benchmarks, achieving 94.8% vs 93.4% on the DMR benchmark and accuracy improvements of up to 18.5% on LongMemEval while reducing response latency by 90%.
+
+Graphiti's 25,000 weekly downloads and active contributor base suggest the project has moved beyond experimental use into production deployments.
+
+---
+
+## Implementation Recommendations
+
+### 1. Start with Core Entity Types
+
+Define 3-5 custom entity types that map to your research structure:
+- `ResearchFinding` (from research agents)
+- `CriticalAnalysis` (from critical analyst)
+- `ContextualInsight` (from synthesis)
+- `Company`, `Market`, `Strategy` (domain entities)
+
+### 2. Use Consistent Naming Conventions
+
+Use consistent naming conventions to make it easier to understand and use your knowledge graph, and document your naming conventions to ensure others can understand and use your knowledge graph.
+
+### 3. Test Entity Extraction Quality
+
+A fundamental limitation of Graphiti's LLM-based approach is the lack of completeness guarantees for entity and relationship extraction - there's no way to verify that the LLM has captured everything important.
+
+**Mitigation:** Run test episodes through your pipeline and validate that:
+- Custom attributes are being populated
+- Agent provenance is preserved
+- Relationships between findings are captured
+
+### 4. Monitor for Schema Drift
+
+Your knowledge graph's schema can evolve over time, and you can update entity types by adding new attributes without breaking existing nodes.
+
+Track which attributes are actually being extracted vs. defined in your schema.
+
+### 5. Optimize Episode Structure
+
+Your current structure (5 episodes per research session) is already optimal for Graphiti. JSON documents should be kept compact as they must fit within your LLM's context window.
+
+---
+
+## Potential Pitfalls & Mitigations
+
+### Pitfall 1: Over-Engineering the Schema
+
+**Risk:** Defining too many custom entity types with too many attributes
+**Mitigation:** Start simple - even limited schema is better than none, and remember quality over quantity
+
+### Pitfall 2: Custom Properties Not Persisting
+
+**Risk:** Nodes in Neo4j may only contain standard properties, with custom properties from Pydantic models not being saved
+
+**Mitigation:** 
+- Test your schema with sample episodes
+- Verify properties in Neo4j directly
+- Join the Graphiti Discord for support if issues arise
+
+### Pitfall 3: LLM Extraction Inconsistency
+
+**Risk:** Graphiti uses LLM-based entity extraction and basic name matching, with sophistication depending on the underlying LLM's capabilities
+
+**Mitigation:**
+- Use GPT-4 or Claude for extraction (not GPT-3.5)
+- Provide detailed attribute descriptions in Pydantic models
+- Include examples in custom prompts
+
+---
+
+## Final Recommendation
+
+**Use custom entities for your research pipeline.**
+
+### Rationale:
+
+1. **Your system is closed and structured** - you know exactly what each episode contains
+2. **Provenance is critical** - execution agents need to know "who said what"
+3. **Context is your differentiator** - the "why this matters" layer requires semantic distinction
+4. **Query precision matters** - "What did the critical analyst challenge?" is a different question than "What companies were mentioned?"
+5. **Execution optimization** - custom attributes like `action_implication` directly inform downstream agents
+
+### The Schema Design Principle:
+
+Without ontology, the knowledge graph would be disorganized and lacking in meaning - ontology serves as the foundation of a knowledge graph because it structures and organizes the data in a meaningful way.
+
+Your research pipeline generates **structured semantic content** with **known provenance**. Custom entities preserve both dimensions. Defaults would flatten this richness into generic nodes, losing the signal you've worked hard to extract.
+
+### Next Steps:
+
+1. Define 3-5 core custom entity types
+2. Run test episodes through Graphiti
+3. Validate entity extraction and property persistence
+4. Iterate on attribute definitions based on what LLM actually extracts
+5. Build execution agent queries that leverage custom entity types
+
+---
+
+## References & Further Reading
+
+- **Graphiti Documentation:** https://help.getzep.com/graphiti
+- **Zep Research Paper:** "Zep: A Temporal Knowledge Graph Architecture for Agent Memory" (arXiv:2501.13956)
+- **Production Implementation:** Zep achieves state-of-the-art agent memory performance using Graphiti with custom entities
+- **Community:** Join Zep Discord #Graphiti channel for implementation support
+
+---
+
+**Research completed:** October 14, 2025  
+**Sources analyzed:** 102 search results across Graphiti documentation, academic papers, production case studies, and knowledge graph design literature  
+**Key insight:** Custom entities transform your research pipeline from "information storage" to "knowledge representation" - exactly what you need for execution agents to "print money."

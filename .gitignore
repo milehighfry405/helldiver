@@ -12,6 +12,6 @@ api_keys.txt
 venv/
 env/
 
-# Context/research - TEMPORARILY ALLOWING session_research_20251012_170404 for migration
-context/*
+# Context/research - Now tracked in git (private repo, no secrets)
+# context/ folder contains research session files for cross-computer continuity
 

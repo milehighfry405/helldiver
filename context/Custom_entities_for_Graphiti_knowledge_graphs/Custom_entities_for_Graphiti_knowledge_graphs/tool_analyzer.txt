@@ -1,0 +1,270 @@
+Worker: tool_analyzer
+Timestamp: 2025-10-14T16:44:20.929488
+Batch ID: msgbatch_012H4b4SnBEZaGsSNorZMJNK
+================================================================================
+
+Perfect! I'm going to execute **Option A** - all three phases in this research session. This will give you the complete picture: how Graphiti works, when custom entities matter, and a decision framework for your specific use case.
+
+Let me dive in. This will take a few minutes as I work through the phases.Let me continue with more targeted searches on how Graphiti handles episode metadata and provenance:Now let me search for more specific information about Graphiti's implementation details and decision frameworks:Perfect! I now have comprehensive information. Let me compile the research findings into a structured report.
+
+---
+
+# RESEARCH REPORT: Custom Entities in Graphiti for Structured Research Pipelines
+
+## Executive Summary
+
+Based on deep research into Graphiti's architecture and knowledge graph schema design principles, **custom entities would provide significant value for your structured research pipeline**, but the decision hinges on specific trade-offs between precision and simplicity. The key insight: Graphiti maintains schema consistency by reusing existing schema and preventing unnecessary proliferation of node and edge types, which means custom entities should be used strategically rather than comprehensively.
+
+---
+
+## PHASE 1: How Graphiti Works
+
+### Core Architecture
+
+Graphiti ingests data as discrete episodes, maintaining data provenance and allowing incremental entity and relationship extraction. Episodes enable querying for information at a point in time and understanding the provenance of nodes and their edge relationships.
+
+**Critical Finding for Your Use Case:**
+Episodic nodes contain the raw data of an episode. An episode is a single text-based event added to the graph—it can be unstructured text like a message or document paragraph, or structured JSON. The episodic node holds the content from this episode, preserving the full context.
+
+### Entity Extraction Process
+
+LLMs are already adept at zero-shot entity extraction from arbitrary text. Graphiti simplified prompts by eliminating unnecessary context beyond what's required to accurately complete the task.
+
+**However**, during ingestion, the system processes both the current message content and the last n messages to provide context for named entity recognition. This means **Graphiti does use episode context**, but primarily from previous episodes, not from metadata about the current episode's source.
+
+### Schema Consistency Philosophy
+
+Graphiti automatically builds an ontology based on incoming data, taking care to de-duplicate nodes and label edge relationships consistently. Beyond automatic ontology creation, Graphiti provides an intuitive method to define custom, domain-specific entities using familiar Pydantic models.
+
+**Key Design Decision:**
+Following entity extraction and resolution, the system incorporates the data into the knowledge graph using predefined Cypher queries. We chose this approach over LLM-generated database queries to ensure consistent schema formats and reduce the potential for hallucinations.
+
+---
+
+## PHASE 2: When Custom Entities Matter
+
+### General Principles from Knowledge Graph Design
+
+Creating your own ontology can be a complex and time-consuming task. It requires a deep understanding of domain-specific knowledge and the relationships between concepts. It also requires expertise in ontology modelling. Therefore, it is essential to carefully weigh the benefits and costs of creating your own ontology before embarking on the task. Sometimes, using a standard ontology and customising it to fit your specific needs may be more efficient.
+
+### Decision Framework
+
+Selecting the appropriate tool – taxonomy or ontology – depends on the specific needs of your AI or machine learning application. Taxonomies are well-suited for tasks requiring basic organization and categorization. Ontologies are ideal for situations where deeper domain knowledge and intricate relationships between entities are crucial.
+
+### Custom Entity Benefits in Graphiti
+
+Graphiti automatically matches extracted entities to defined custom types. Custom entity types enhance an agent's ability to recall knowledge accurately and improve contextual awareness, which is essential for consistent, relevant interactions.
+
+**Specific Advantages:**
+Custom entity types and edge types enable more structured data extraction and richer semantic relationships in your knowledge graph.
+
+### Trade-offs
+
+A schema-less graph allows for more flexibility in data modelling, as it does not require a predefined schema or ontology. However, a schema-less graph also has some drawbacks. Ensuring data consistency and integrity can be more difficult without a predefined schema or ontology. It can also make it more challenging to query and analyse the data, as there may be less structure to guide the analysis.
+
+---
+
+## PHASE 3: Decision Framework for Your Use Case
+
+### Your System's Unique Characteristics
+
+**Structured Pipeline:**
+- 3 research agents (4k tokens each)
+- 1 critical analyst (2k tokens)
+- 1 context synthesis (2k tokens)
+- **Total: 5 episodes per research session with known provenance**
+
+**Key Constraint:** Documents must fit within your LLM's context window.
+
+### The Core Question: Is Episode Metadata Preserved?
+
+Based on the research, **Graphiti does NOT automatically make episode-level metadata (like agent role or prompt) available to the entity extraction process**. 
+
+Episodic edges represent relationships between episodic nodes and entity nodes: if an entity is mentioned in a particular episode, those two nodes will have a corresponding episodic edge. An entity edge represents a relationship between two entity nodes, storing a corresponding fact as a property.
+
+**What this means:** The episode structure exists in the graph (you can trace entities back to their source episodes), but the LLM extracting entities from "Research Agent 2's output" doesn't inherently know it's looking at skeptical analysis vs. primary research.
+
+### Recommendation: Strategic Use of Custom Entities
+
+#### Option 1: Minimal Custom Entities (RECOMMENDED for starting)
+
+**Approach:** Use defaults for research entities, leverage episode metadata for provenance.
+
+**Rationale:**
+1. Don't optimize your knowledge graph too early. First, settle on a GraphRAG architecture you can implement. You can begin improving your KG and data model once you have your entire GraphRAG setup and evaluation pipelines in place. Don't aim to build the perfect GraphRAG application right away. Starting off with a simpler design helps you better quantify the retrieval outcomes relative to a baseline.
+
+2. When building your knowledge graph, it's important to start small. Start with a small subset of your data and gradually add more as you become more comfortable with the tool you are using. Starting small will help you avoid getting overwhelmed and will allow you to focus on building a high-quality knowledge graph.
+
+**Implementation:**
+- Let Graphiti extract entities naturally from your research content
+- Use episode `source_description` and `name` parameters to encode agent role
+- Query by episode provenance when you need to distinguish "what the devil's advocate said" vs. "primary research facts"
+
+**Example:**
+```python
+await graphiti.add_episode(
+    name="Research Agent 1 - Primary Research",
+    episode_body=research_agent_1_output,
+    source_description="Primary research agent focusing on market analysis",
+    reference_time=datetime.now(timezone.utc)
+)
+
+await graphiti.add_episode(
+    name="Critical Analyst - Gap Analysis",
+    episode_body=critical_analyst_output,
+    source_description="Devil's advocate analysis identifying gaps and counterarguments",
+    reference_time=datetime.now(timezone.utc)
+)
+```
+
+#### Option 2: Custom Entities for Research Provenance (ADVANCED)
+
+**Approach:** Define custom entity types that encode the research pipeline structure.
+
+**When to use:**
+- After you've validated that defaults aren't capturing enough signal
+- When downstream agents frequently need to distinguish between "validated fact" vs. "hypothesis" vs. "counterargument"
+- When the research domain has specialized concepts that defaults miss
+
+**Implementation Strategy:**
+
+When you provide custom entity types, Graphiti will: Extract entities and classify them according to your defined types · Identify and populate the provided attributes of each type · This will affect the node.labels and node.attributes fields of the extracted nodes.
+
+**Example Custom Schema:**
+```python
+from pydantic import BaseModel, Field
+
+class ResearchFinding(BaseModel):
+    """Primary research fact extracted by research agents"""
+    confidence_level: str = Field(description="High/Medium/Low based on source quality")
+    source_agent: str = Field(description="Which research agent extracted this")
+    
+class Counterargument(BaseModel):
+    """Critical analysis or gap identified by analyst"""
+    challenges: str = Field(description="What this counterargument challenges")
+    severity: str = Field(description="How significant is this gap")
+
+class StrategicInsight(BaseModel):
+    """User context about why this matters for GTM"""
+    relevance_to_gtm: str = Field(description="How this connects to go-to-market strategy")
+    priority: str = Field(description="High/Medium/Low priority for execution")
+```
+
+**Trade-off:** When extracting attributes, maintain consistent naming conventions across related entity types and include a clear and thorough description of each attribute. Additionally, attributes should be broken down into their smallest meaningful units rather than storing compound information.
+
+### The Signal Preservation Question
+
+**What you're trying to preserve:**
+- Which agent produced which insight
+- The analytical lens (primary research vs. critical analysis vs. user context)
+- The "why this matters" thread
+
+**Two paths to preserve this:**
+
+1. **Episode-level** (simpler, recommended first):
+   - Store agent role in episode metadata
+   - Query: "Get all entities mentioned in episodes from the critical analyst"
+   - An episode is itself a node, and any nodes identified while ingesting the episode are related to the episode via MENTIONS edges. Episodes enable querying for information at a point in time and understanding the provenance of nodes and their edge relationships
+
+2. **Entity-level** (more complex, more precise):
+   - Define custom entity types that encode provenance
+   - Query: "Get all Counterargument entities"
+   - Benefit: Graphiti extracts entities from text and classifies them using your custom types · Validation: Each entity is validated against the appropriate Pydantic model · Attribute Population: Custom attributes are extracted from the text and populated · Storage: Entities are stored with their custom attributes
+
+### Practical Decision Matrix
+
+| Scenario | Use Defaults | Use Custom Entities |
+|----------|--------------|---------------------|
+| Research topics vary widely (companies, concepts, frameworks) | ✅ Yes | ❌ Overkill |
+| Need to distinguish "fact" from "hypothesis" from "critique" | ⚠️ Possible via episodes | ✅ Better precision |
+| Downstream agents ask: "What did the analyst challenge?" | ✅ Query by episode | ✅ Query by entity type |
+| Downstream agents ask: "What are the facts about X?" | ✅ Works fine | ✅ Also works |
+| You're just starting | ✅ Start here | ❌ Wait |
+| You've validated defaults miss critical distinctions | ❌ Insufficient | ✅ Upgrade |
+
+---
+
+## Key Insights from Research
+
+### 1. Graphiti's Design Philosophy
+
+We believe that graph-based RAG systems are most performant when using graphs that are small and narrowly-scoped to your unique view of the world. By including only the data that you need for your use case, you reduce the likelihood of poisoning your context window with potentially irrelevant information and causing hallucinations. Smaller graphs are also easier to maintain and modify, giving developers much more control to build accurate, reliable RAG systems.
+
+### 2. The Closed System Advantage
+
+Your system is **closed** (predictable structure, known agents, consistent prompts). This is actually an advantage:
+
+Our schema-based extraction solution takes a multi agent approach and employs task-specific language models throughout multiple stages to build more reliable and comprehensive extraction. Our modular approach enables users to inject meaningful context and swap in domain-specific models at the right stage of extraction to enable more customized, reliable extraction that maps to your unique use case. Schemas are how WhyHow enables developers to express and inject their unique view of the world.
+
+### 3. The Provenance Problem
+
+**Critical finding:** A fundamental limitation of Graphiti's LLM-based approach is the lack of completeness guarantees for entity and relationship extraction. Since there is no definitive source of truth for what entities and relationships should exist in any given episode, there's no way to verify that the LLM has captured everything.
+
+**Implication:** Whether you use custom entities or not, you can't guarantee the LLM extracts everything. Focus on making what IS extracted maximally useful.
+
+---
+
+## Final Recommendation
+
+### Start with Defaults + Rich Episode Metadata
+
+**Phase 1 (Immediate):**
+1. Use Graphiti's default entity extraction
+2. Encode agent role and purpose in episode `name` and `source_description`
+3. Commit all 5 episodes per research session with clear provenance
+4. Build your downstream agents to query by episode when they need provenance
+
+**Why:** By following these best practices, you can build a powerful and effective knowledge graph. Remember to define your use case, choose the right tools, design your schema carefully, use standard vocabularies, start small, use unique identifiers, use consistent naming conventions, use inferred relationships, validate your data, and publish your knowledge graph. With these best practices in mind, you can build a knowledge graph that will help you solve complex problems and unlock new insights.
+
+### Evaluate and Upgrade to Custom Entities If Needed
+
+**Phase 2 (After validation):**
+
+Upgrade to custom entities if you observe:
+1. Downstream agents can't distinguish between fact types they need to distinguish
+2. Queries like "show me all counterarguments" require complex episode filtering
+3. The research domain has specialized concepts that defaults consistently miss
+
+**Implementation:**
+- Define 3-5 custom entity types (ResearchFinding, Counterargument, StrategicInsight, etc.)
+- You can add entity types to new episodes, even if existing episodes in the graph did not have entity types. Existing nodes will continue to work without being classified. To add types to previously ingested data, you need to re-ingest it with entity types set into a new graph
+
+### Document Your Decision
+
+**Commit this research to your graph** so future you (or future agents) understand the reasoning:
+
+```python
+await graphiti.add_episode(
+    name="Schema Design Decision - Custom Entities",
+    episode_body="""
+    Decision: Start with default entities, upgrade to custom if needed.
+    
+    Rationale: Graphiti maintains schema consistency by reusing existing schema.
+    Our closed system (5 episodes per research, known agent roles) can leverage
+    episode-level provenance initially. Custom entities add precision but also
+    complexity. Starting simple allows us to validate what signal we actually
+    need to preserve before committing to custom schema.
+    
+    Upgrade triggers:
+    - Downstream agents can't distinguish fact types
+    - Episode queries become too complex
+    - Domain concepts consistently missed by defaults
+    """,
+    source_description="Schema design research and decision framework",
+    reference_time=datetime.now(timezone.utc)
+)
+```
+
+---
+
+## Technical Implementation Notes
+
+### Episode Metadata Best Practices
+
+Using the EpisodeType.message type supports passing in multi-turn conversations in the episode_body. The text should be structured in {role/name}: {message} pairs.
+
+For your research agents, structure the episode body to include agent context:
+
+```
+Research Agent 1 (Market Analysis): [4k tokens of research]
+Focus: Primary market

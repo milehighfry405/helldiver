@@ -1,0 +1,225 @@
+Worker: industry_intelligence
+Timestamp: 2025-10-13T22:59:03.257505
+Batch ID: msgbatch_01ELacxZVDKNNTnPZyhuW2wE
+================================================================================
+
+Perfect. Let me conduct comprehensive research on Clay's full platform capabilities, documentation, and best practices. I'll search systematically to map out everything you need.Let me continue with more targeted searches on specific Clay features and best practices.Let me continue searching for more specific Clay features and community resources.Based on my comprehensive research, I now have extensive information about Clay's platform, features, and capabilities. Let me compile this into a structured research report.
+
+---
+
+# COMPREHENSIVE CLAY RESEARCH REPORT
+## Platform Capabilities, Documentation, and Best Practices
+
+## EXECUTIVE SUMMARY
+
+Clay provides access to 100+ premium data sources and AI research agents in one platform, then automates growth workflows to turn insights into revenue. The platform is designed for GTM (Go-To-Market) teams to build sophisticated data enrichment and outbound workflows from blank tables to fully automated campaigns.
+
+---
+
+## 1. CORE PLATFORM FEATURES
+
+### 1.1 Sculptor (AI Co-Pilot)
+
+**What It Is:**
+Sculptor is Clay's AI copilot that makes building tables easier, faster, and better. It takes your business context and guides setup, recommends enrichments, answers questions, and provides instant insights based on your table data — all using natural language.
+
+**Capabilities:**
+- Sculptor excels at generating lists via natural language and building new enrichments from scratch.
+- Chat with Sculptor to find common patterns in your data and know who to prioritize outreach to, and when and how you should reach out to them.
+
+**Limitations:**
+- Supported sources are limited — Sculptor can only generate sources using companies, people, jobs, Google Maps, CSV imports, or web search. If you want to use a different source, you'll need to manually create it before using Sculptor.
+- No write capabilities yet — You can create new tables, but can't modify existing ones.
+- Sculptor isn't designed to create entire workflows with a single request (it doesn't create "one-shot workflows"). Instead, it works as your partner throughout the building process. While Sculptor excels as an ideation partner, it's best at accelerating your existing work rather than replacing it.
+
+### 1.2 Claygent (AI Research Agent)
+
+**What It Is:**
+Clay built Claygent, an AI web scraper that uses GPT‑4 to understand and extract highly specific information from websites. To make Claygent as efficient as possible, Clay optimizes the number of tokens passed to GPT‑4 and chooses the appropriate model for each use case.
+
+**How It Works:**
+- When scraping a website, Claygent asks GPT‑4 which section of the website is most likely to contain the desired information. For example, GPT‑4 might indicate that SOC-2 compliance information is generally found in the footer.
+- Claygent also uses a binary search approach, where it takes part of a website, checks if the required data is there, and if not, moves to another part. This approach progressively narrows the search space until the required information is found.
+
+**Usage Stats:**
+Of Clay's customers, 30% use Claygent daily, generating an impressive 500,000 research and outreach tasks per day.
+
+**Best Practices:**
+- If no template fits your needs, create a custom Claygent prompt using the S.P.I.C.E. framework and meta-prompter principles. When scraping multiple data points using a single Claygent prompt, define column outputs to ensure structured and well-organized data.
+
+### 1.3 Data Sourcing
+
+**Find Companies & Find People:**
+Some of the key data providers include: Apollo.io - for contacts and account data, Clearbit - for company and person enrichment, Dropcontact - for work emails and company information, Harmonic.ai - for fundraising data and company enrichment, HitHorizons - for European company data, Ocean.io - for finding similar companies.
+
+**Available Sources:**
+- Companies, People, Jobs searches
+- Google Maps
+- CSV imports
+- CRM imports (HubSpot, Salesforce, Pipedrive, etc.)
+- Webhooks for real-time data
+- Web scraping (Chrome extension, Apify, Zenrows)
+
+### 1.4 Enrichment Capabilities
+
+**Waterfall Enrichment:**
+Waterfall enrichment lets you search sequentially across multiple tools until you find a valid match. This routinely triples our customers' data coverage and quality!
+
+**How It Works:**
+Clay's unique "waterfall enrichment" process searches data sources sequentially to ensure you get the most comprehensive and accurate information possible. It starts with your preferred data provider and continues through Clay's extensive network until the desired data points are found. This approach minimizes unnecessary searches and costs while delivering the best possible data coverage.
+
+**Available Enrichments:**
+- Access 100+ premium data sources
+- Work emails, personal emails, phone numbers, mobile numbers
+- Firmographic data (revenue, employee count, industry, location)
+- Technographic data (tech stack, tools used)
+- Intent signals (job changes, funding, hiring)
+- LinkedIn profiles, social media data
+- Company financials, funding rounds
+- Job openings
+
+**Integration Count:**
+Discover what data you can find with Clay's 50+ built-in data providers from title to work email address to department headcount growth.
+
+---
+
+## 2. WORKFLOW AUTOMATION FEATURES
+
+### 2.1 AI Formulas & Conditional Logic
+
+**What They Are:**
+AI formulas let you generate custom code in your table—credit-free—to format, clean, and reshape data exactly as needed. Too often, users rely on AI integrations instead of AI formulas in large tables, wasting hundreds or even thousands of credits. So in this lesson, we'll show you how to use AI formulas to structure data and execute conditional runs so enrichments only run (and only use credits) when they meet specific criteria.
+
+**Use Cases:**
+- Clay's AI Formula Generator mainly has three use cases — conditional formula, formatting data, and cleaning data.
+- With AI formulas, you can automatically use the best-fit provider to enrich any given company.
+- Enrich only the lead that are like your best-fit customers to save time and money.
+
+**Conditional Runs:**
+At the bottom of any enrichment column's configuration, you'll find the Run Settings section where you can add conditional run logic. In the "Only run if" box, you can add formulas to control when the enrichment runs. You can either: - Type the formula manually - Click "Use AI" and describe your condition in plain language.
+
+### 2.2 Table Views, Filters & Sorting
+
+**Views:**
+Views are saved combinations of filters, sorts, and column customizations that let you display your table data in different ways. You can quickly switch between views to focus on specific data without altering the underlying table.
+
+**Filters:**
+Add individual filters using + Add filter. Select AND (all conditions must be true) or OR (any condition can be true) as the group logic.
+
+**Sorting:**
+Sorting allows you to organize your table by rearranging rows based on the values in a column. You can sort alphabetically, numerically, or by date, depending on the column's data type.
+
+### 2.3 Write to Table (Linked Tables)
+
+**Purpose:**
+You'll most often use write to table when you're dealing with "1 to many" data relationships. For example, one company has many contacts you may want to reach out to, or one company has many lookalikes you want to investigate. Whenever you run Find People from a Find Companies table, Write to Table is already running in the background.
+
+**Components:**
+There are four components to every successful Write to Table configuration: Selecting a table to write to, Selecting a list of data to send to the new table (optional), Selecting the data points from that list to send, Selecting additional data points from the current table to send.
+
+### 2.4 HTTP API & Webhooks
+
+**Webhooks:**
+Webhooks enable Clay to automatically receive data from other applications through HTTP POST requests in JSON format whenever specific events occur. Your table updates instantly with new data, eliminating manual entry.
+
+**HTTP API:**
+Use our HTTP API capability to build your own integrations without code.
+
+---
+
+## 3. CRM INTEGRATIONS & EXPORT
+
+### 3.1 HubSpot Integration
+
+**Actions Available:**
+- Lookup actions pull data FROM HubSpot INTO Clay without changing anything in your CRM. Think of these as read-only operations—you're simply viewing and importing existing data for analysis or enrichment purposes.
+- Create/Update actions for writing data back to HubSpot
+- Create associations between records
+
+**Best Practices:**
+Clay's waterfall enrichment is powerful, but match by HubSpot ID and use "ignore blank values" to protect clean fields.
+
+### 3.2 Salesforce Integration
+
+Clay supports HubSpot, Salesforce, PipeDrive, Close, Copper, and many others.
+
+### 3.3 Export Best Practices
+
+**CRM Hygiene:**
+Preventing duplicate records ensures your team isn't calling the same prospect multiple times or getting confused about previous interactions. Maintaining data integrity means your sales team can trust the information in front of them, leading to more effective conversations and better conversion rates. Only adding net new contacts prevents your CRM from becoming cluttered with outdated or redundant information that slows down your team.
+
+---
+
+## 4. PRICING & CREDITS
+
+### 4.1 Credit System
+
+**How Credits Work:**
+Clay credits are the "currency" you use to purchase different data points and actions in Clay. The average cost of a data point or action varies depending on the provider and the data point in question. The vast majority of actions in Clay are either free, or cost 1-2 credits. Some data points are harder to find and just more expensive as a result - like mobile phone numbers.
+
+**What's Free:**
+Any external CRM connections or Emailers are also free (on the Pro Plan!). We only charge credits for data points where we have to pay a cost for access or use. So think company revenue, fully scraped LinkedIn profiles, phone numbers, contact research, AI, and others.
+
+No, you only pay credits for actual data enrichment. You can prospect accounts or leads from companies, google maps, github, CRM tools, web scraping, and much more - all for free.
+
+### 4.2 Pricing Plans
+
+**Plan Structure:**
+Grow with Clay to unlock increasingly big savings! The higher your Clay plan is, the lower your cost per credit will be. Our Pro plan is up to 7x cheaper than our starter plan.
+
+**Cost Per Credit:**
+Generally, the higher the plan, the lower the cost per credit. For example, on the Starter plan, you might pay around $75 per 1,000 credits, while on the Pro plan, that cost could drop to as low as $16 per 1,000 credits. That's a pretty significant difference!
+
+---
+
+## 5. TEMPLATES & CLAYBOOKS
+
+### 5.1 Claybooks
+
+**What They Are:**
+Claybooks showcase what's possible with Clay through interactive, step-by-step guides. Each Claybook highlights a specific use case, such as automating QA for support tickets, enabling you to quickly recreate workflows and achieve your goals. Explore all available Claybooks at clay.com/claybooks.
+
+### 5.2 Templates
+
+Use our community's most popular Clay templates to jumpstart your outbound motion.
+
+---
+
+## 6. COMMUNITY & SUPPORT
+
+### 6.1 Slack Community
+
+**Size & Engagement:**
+Our founders built a Slack Community to support lead generation by meeting our customers on the platform they're already using successfully. The goal is not only to support them there, but also to enable them to help each other. Our Slack Community currently allows customers to search the history of an issue so they can help each other out.
+
+Time during initial implementation: 4 weeks, # of Slack users in community: 15K, # of Enterprise Slack channels in white-glove workspace: 70+.
+
+### 6.2 Clay University
+
+Master Clay and learn how to create hyper-personalized campaigns that book more meetings and drive your business forward.
+
+**Course Structure:**
+- Clay 101 (fundamentals)
+- Automated Outbound
+- Automated Inbound
+- CRM Enrichment
+- Advanced AI & Prompting
+- Data Scraping & Transformation
+
+---
+
+## 7. KEY WORKFLOWS FOR YOUR USE CASE
+
+### 7.1 Starting from Blank Table → ICP Identification → Outreach
+
+**Step 1: Source Companies**
+- Use Find Companies with filters for your ICP criteria
+- If a data point isn't available in the Find Companies modal, you'll need to source it through a provider waterfall or an AI web scraper in the table. 💡Tip: For new users, skip default enrichments (after hitting "Import") to conserve trial credits. Add enrichments later once you understand how they work in Clay.
+
+**Step 2: Enrich Companies**
+- Use waterfall enrichment for firmographics/technographics
+- Filter before enriching: Create a disqualifying column in Clay to flag leads that don't match your ICP. Use formulas to define fit based on company size, region, industry, or any other signals you care about. This keeps unqualified contacts out of your enrichment flow. Control when enrichment runs: Use the disqualification column in your "only run if" conditions. Clay will enrich the right leads and skip the rest without wasting time or credits.
+
+**Step 3: Find People**
+- Use Find People or Find Contacts at Company
+- Since contacts hold little value without basic

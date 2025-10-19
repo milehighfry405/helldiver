@@ -1,0 +1,161 @@
+Worker: academic_researcher
+Timestamp: 2025-10-13T22:59:03.181444
+Batch ID: msgbatch_01ELacxZVDKNNTnPZyhuW2wE
+================================================================================
+
+Perfect. Let me pull everything on Clay's platform capabilities, documentation, and best practices. I'll focus on the full lifecycle you need: sourcing → enrichment → filtering/logic → AI features → activation.Let me continue searching for more specific documentation on Clay's features, formulas, conditional logic, and best practices.Let me search for more specific information about Clay's API, write-to-table features, and export capabilities.Perfect! I now have comprehensive research on Clay's platform, features, and documentation. Let me compile this into a detailed research report.
+
+---
+
+# **COMPREHENSIVE CLAY RESEARCH REPORT**
+## **Full Platform Capabilities, Documentation, and Best Practices**
+
+---
+
+## **EXECUTIVE SUMMARY**
+
+Clay provides access to 100+ premium data sources and AI research agents in one platform, then automates growth workflows to turn insights into revenue. The platform is designed for GTM (Go-To-Market) teams and enables users to build complete workflows from blank tables through sourcing, enrichment, filtering, AI-powered research, and CRM activation.
+
+**Key Platform Philosophy:** Clay is built for people who think like engineers and product teams – those who value testing, learning, and iterating. That's why we say: Clay rewards experimentation over perfection.
+
+---
+
+## **1. SCULPTOR: CLAY'S AI CO-PILOT**
+
+### **What Sculptor Is**
+Sculptor is Clay's go-to-market co-pilot. It helps teams turn high-level ideas into production-ready workflows. You can bring a challenge into the chat box and, working alongside Sculptor, deploy it as a live Clay workflow in minutes.
+
+### **Sculptor Capabilities**
+Supported sources are limited — Sculptor can only generate sources using companies, people, jobs, Google Maps, CSV imports, or web search. If you want to use a different source, you'll need to manually create it before using Sculptor.
+
+### **Sculptor Limitations (Critical for Your Use Case)**
+No direct CRM integration (yet) — Connections must be set up manually for now. Cross-table operations are limited — Advanced linking and workflows are still in development. No export option — Export functionality hasn't been integrated yet. No write capabilities yet — You can create new tables, but can't modify existing ones. Feature gaps — Signals tables aren't currently supported.
+
+### **When NOT to Use Sculptor**
+When you're building on a feature that's not yet supported, such as Signals or Clay Sequencer. When you need a complete workflow immediately. Sculptor isn't designed to create entire workflows with a single request (it doesn't create "one-shot workflows"). Instead, it works as your partner throughout the building process. While Sculptor excels as an ideation partner, it's best at accelerating your existing work rather than replacing it.
+
+### **Best Practices for Sculptor**
+Go step by step. Sculptor does best when handling a problem one element at at ime. Provide context. Sculptor performs best when you include details, examples, and framing.
+
+---
+
+## **2. SOURCING CAPABILITIES: FINDING ACCOUNTS & CONTACTS**
+
+### **Find Companies (Native Dataset)**
+This lesson dives into the art of sourcing companies using Clay's native Companies dataset. We often get asked which data providers power the Find Companies/Find People datasets. And the answer is: a lot.
+
+**Sourcing Options:**
+- **Find Companies**: Search for companies across any region, industry segment, size, and more. Start using a lookalikes search to find companies similar to your current ICP.
+- **Find People**: People search in Clay is designed to layer on top of your company data, so you can identify and filter the right contacts based on: job title, seniority, location, and more!
+- **Google Maps**: We'll show you how to use Clay's Google Maps integration to efficiently find and prospect local businesses within your Ideal Customer Profile.
+- **CSV Import**: Import existing lists
+- **CRM Import**: Importing data from your CRM into Clay is a crucial step in streamlining your workflows. Whether you're working with Salesforce, HubSpot, Close, or another CRM, Clay allows you to seamlessly pull in key records for enrichment, segmentation, and automation.
+- **Webhooks**: Learn to connect all your inbound sources to Clay using native integrations like Typeform or Webhooks for any platform, from webinars to chatbots to trial signups.
+
+---
+
+## **3. ENRICHMENT: THE CORE OF CLAY**
+
+### **Waterfall Enrichment (Critical Feature)**
+Waterfall enrichment lets you search sequentially across multiple tools until you find a valid match. This routinely triples our customers' data coverage and quality!
+
+**How Waterfall Works:**
+The waterfall enrichment method works by searching sequentially across multiple data providers until a valid match is found for the information you're looking for. The system checks each provider in sequence until it finds the data point you need. The waterfall method isn't designed to prioritize the cheapest source, but rather to maximize data coverage and quality. For example, with multiple providers, customers can triple their enrichment rates for contact info and firmographics compared to using a single provider.
+
+### **Data Providers**
+Enrich at scale: Sync millions of CRM records and enrich them with 150+ providers. Access premium data from 150+ providers and integrate with the GTM tools your team already uses, to act with precision.
+
+**Types of Enrichment Available:**
+- **Firmographic Data**: Clay adds company-level details such as industry, company size, revenue, employee count, location, and business type (public or private).
+- **Contact Information**: Emails (work & personal), phone numbers (mobile & direct)
+- **Technographic Data**: Tech stack, tools used
+- **Intent Signals**: Intent signals: Take instant action when prospects change jobs, visit your website, mentions your company online, and more.
+- **Social Profiles**: LinkedIn, Twitter, etc.
+
+### **Enrichment Best Practices**
+By default, you'll have access to six providers in your email waterfall. But here's where it gets interesting: you can customize your waterfall by adding more providers to maximize your email coverage. This flexibility allows you to tailor your data enrichment process to your specific needs and preferences.
+
+---
+
+## **4. CLAYGENT: AI RESEARCH AGENT**
+
+### **What Claygent Is**
+Claygent can research any company based on its website or public information on the web. Find detailed information about customers, job positions, office locations, or whatever you can think of. Claygent can visit a list of domains, find any info, and report back.
+
+### **Claygent Technical Implementation**
+Clay built Claygent, an AI web scraper that uses GPT‑4 to understand and extract highly specific information from websites. To make Claygent as efficient as possible, Clay optimizes the number of tokens passed to GPT‑4 and chooses the appropriate model for each use case.
+
+**How Claygent Optimizes Searches:**
+When scraping a website, it would be inefficient to send the whole site to GPT‑4. Instead, Claygent asks GPT‑4 which section of the website is most likely to contain the desired information. For example, GPT‑4 might indicate that SOC-2 compliance information is generally found in the footer.
+
+### **Claygent Model Options**
+Claygent Argon: Strongest overall model for deep research and complex analysis, significantly outperforming Opus and GPT 4o. GPT-4 and Claude Opus: These models offer enhanced reasoning capabilities. While they don't provide the same level of answer formatting as Claygent models, they can be useful for testing data accuracy or handling more complex analytical tasks.
+
+### **Claygent Usage Stats**
+The widespread adoption of Claygent has been a significant driver of this growth. Of Clay's customers, 30% use Claygent daily, generating an impressive 500,000 research and outreach tasks per day. The impact is undeniable — teams of one or two can achieve results that previously required dozens of engineers.
+
+### **Claygent Best Practices**
+Take a base list of a couple hundred companies and start off with your initial Clay gent prompt. Put the intiial parameters by reverse engineering what you would be looking at if you would do the research alone. Then run that Clay gent. Overview the results to see how many false negatives you have (results that you don't like) And based on the most common results of false negatives adjust the prompt and try on another list and see if the results improved. The more you ask of the Claygent typically the more it will cost, but you can set max cost as well.
+
+---
+
+## **5. FORMULAS & CONDITIONAL LOGIC**
+
+### **AI Formula Generator**
+Now that you've got your foundational Clay data skills, implement AI formulas – english descriptions that auto-generate snippets of code you can use to extract and filter data, or optimize rows to run in Clay.
+
+### **Conditional Runs (Critical for Credit Optimization)**
+Different accounts and leads require different enrichment steps. Use Clay to conditionally run workflows - using plain English language.
+
+**Use Cases for Conditional Logic:**
+Individual data providers often excel at enriching specific types of companies: they may specialize by region, industry, or more. With AI formulas, you can automatically use the best-fit provider to enrich any given company.
+
+Many accounts and leads in your lists won't meet your baseline criteria for enrichment. Enrich only the lead that are like your best-fit customers to save time and money.
+
+### **Formula Syntax**
+Clay's formulas use JavaScript syntax. Clay's formula syntax supports a subset of JavaScript functionality. While it allows for basic operations and conditional statements, it has limitations compared to full JavaScript. The formula syntax in Clay is designed to be simple and focused on data manipulation within the context of a spreadsheet-like environment. This means that certain JavaScript features, such as defining functions or variables, may not be supported.
+
+### **Conditional Logic Examples**
+For your multi-layer enrichment flow, you can create more precise conditional runs by checking specific field values rather than just step completion. Use conditional formulas to check if high-value fields are empty or contain meaningful data. For example, set up conditions like {{email}} is not empty AND {{email}} != "" or {{job_title}} contains "VP" to trigger fallbacks only when specific fields are missing or inadequate. In Run Settings, use the "Use AI" feature to generate formulas that check multiple field conditions simultaneously. You can combine conditions with AND/OR operators like {{email}} is empty OR {{linkedin_url}} is empty to ensure fallbacks run when key fields are missing.
+
+---
+
+## **6. WRITE TO TABLE & LINKED TABLES**
+
+### **Write to Table Feature**
+Write to Table is a powerful feature that transforms nested lists into structured tables, ensuring data remains relationally linked and easy to work with.
+
+**Use Case:**
+When you have one-to-many relationships, like multiple people at one company to reach out to, use write to table to create linked clay tables that reference each other.
+
+### **Write to Table Components**
+There are four components to every successful Write to Table configuration: Selecting a table to write to: Choose an existing table to append data or create a new table for structured results. Selecting a list of data to send to the new table (optional): Select the list of data (lists are indicated by curly brackets {} in Clay) you want to send to a new table. Selecting the data points from that list to send: Define specific attributes such as Company Name, Domain, Industry, and Employee Count that you want to send. Selecting additional data points from the current table to send: Define any additional columns (including non-lists) that you also want to send to a new table.
+
+### **Auto-Linking Between Tables**
+You'll notice that your Find People table includes a lookup column that refreshes whenever changes are made to the Find Companies table. This automatic linking makes it easy to pull company-level data into a people table without any manual configuration.
+
+---
+
+## **7. HTTP API & INTEGRATIONS**
+
+### **HTTP API Capability**
+To set up an HTTP API integration, you'll need the following information: Method: Identify the HTTP method (e.g., GET, POST) required for the request · Endpoint URL: The specific URL of the API endpoint you want to communicate with. Other Specific Information: This may include headers, query parameters, body content, and any authentication details (e.g., API key or token). The HTTP API integration can work with many different APIs, so having the right documentation will help ensure you set everything up correctly.
+
+### **Clay's API Limitations**
+However, we don't have comprehensive API documentation as Clay doesn't offer exposed API endpoints for direct querying outside our interface. Currently, we don't offer exposed API endpoints for directly querying Clay outside our interface. However, you can use Clay programmatically by: 1. Sending input data to webhooks in Clay 2. Enriching and processing data within Clay 3. Using our HTTP API integration to pass output data to other services
+
+### **Integration Count**
+Find answers to detailed, technical questions across 100+ integrations.
+
+---
+
+## **8. CRM EXPORT & ACTIVATION**
+
+### **Supported CRMs**
+Clay supports HubSpot, Salesforce, PipeDrive, Close, Copper, and many others. If your CRM isn't directly supported, you can use HTTP API connections, which we cover in Clay 201.
+
+### **CRM Hygiene Best Practices**
+CRM Hygiene is about more than just organization. It directly impacts your sales team's success. Preventing duplicate records ensures your team isn't calling the same prospect multiple times or getting confused about previous interactions. Maintaining data integrity means your sales team can trust the information in front of them, leading to more effective conversations and better conversion rates. Only adding net new contacts prevents your CRM from becoming cluttered with outdated or redundant information that slows down your team.
+
+### **HubSpot Integration**
+First,
