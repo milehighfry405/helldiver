@@ -14,5 +14,4 @@ env/
 
 # Context/research - TEMPORARILY ALLOWING session_research_20251012_170404 for migration
 context/*
-!context/session_research_20251012_170404/
-!context/session_research_20251012_170404/**
+

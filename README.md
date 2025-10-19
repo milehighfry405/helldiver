@@ -10,8 +10,9 @@
 
 1. **Read this entire file** (you're doing that now ✓)
 2. **Read [docs/AI_ONBOARDING.md](docs/AI_ONBOARDING.md)** - Navigation guide and workflows
-3. **Check [docs/Claude Sessions/](docs/Claude%20Sessions/)** - Read latest `SESSION_SUMMARY_*.md` for previous context
-4. **Read [docs/COMMIT_CHECKLIST.md](docs/COMMIT_CHECKLIST.md)** - Pre-commit checklist (follow before EVERY commit)
+3. **Read [docs/GRAPH_ARCHITECTURE.md](docs/GRAPH_ARCHITECTURE.md)** - Knowledge graph design decisions and strategy
+4. **Check [docs/Claude Sessions/](docs/Claude%20Sessions/)** - Read latest `SESSION_SUMMARY_*.md` for previous context
+5. **Read [docs/COMMIT_CHECKLIST.md](docs/COMMIT_CHECKLIST.md)** - Pre-commit checklist (follow before EVERY commit)
 
 **Then say**: "Context loaded. I've read the README, AI_ONBOARDING, latest session summary, and commit checklist. Ready to continue!"
 
@@ -68,6 +69,7 @@ helldiver/
 ├── docs/
 │   ├── AI_ONBOARDING.md       # Primary entry point for AI assistants
 │   ├── ARCHITECTURE_OVERVIEW.md
+│   ├── GRAPH_ARCHITECTURE.md  # Knowledge graph design decisions (group_id, schema, custom entities)
 │   ├── decisions/             # Architecture Decision Records (ADRs)
 │   │   ├── 001-episode-naming-strategy.md
 │   │   ├── 002-graphiti-chunking-strategy.md
@@ -208,11 +210,12 @@ If `graphiti_core` not installed, system runs in mock mode:
 
 ## Architecture Decision Records (ADRs)
 
-Before making changes, read relevant ADRs in `docs/decisions/`:
+Before making changes, read relevant documentation:
 
-- **001**: Episode Naming Strategy (why LLM-generated names)
-- **002**: Graphiti Chunking Strategy (why one-episode-per-worker)
-- **003**: Episode Grouping Metadata (how episodes link in graph)
+- **[GRAPH_ARCHITECTURE.md](docs/GRAPH_ARCHITECTURE.md)**: Knowledge graph design decisions (group_id strategy, custom entities, schema design)
+- **[decisions/001](docs/decisions/001-episode-naming-strategy.md)**: Episode Naming Strategy (why LLM-generated names)
+- **[decisions/002](docs/decisions/002-graphiti-chunking-strategy.md)**: Graphiti Chunking Strategy (why one-episode-per-worker)
+- **[decisions/003](docs/decisions/003-episode-grouping-metadata.md)**: Episode Grouping Metadata (how episodes link in graph)
 
 ## Session Continuation
 
@@ -286,11 +289,12 @@ ls context/{Session_Name}/{Episode_Name}/
 
 **Quick checklist when continuing this project:**
 1. Read [docs/AI_ONBOARDING.md](docs/AI_ONBOARDING.md) for navigation
-2. Check [docs/Claude Sessions/](docs/Claude%20Sessions/) for previous session context
-3. Read [docs/ARCHITECTURE_OVERVIEW.md](docs/ARCHITECTURE_OVERVIEW.md) for high-level architecture
-4. Check [docs/decisions/](docs/decisions/) for rationale behind design choices
-5. Run code as-is first to understand flow
-6. Make changes incrementally, test after each change
+2. Read [docs/GRAPH_ARCHITECTURE.md](docs/GRAPH_ARCHITECTURE.md) for knowledge graph design decisions
+3. Check [docs/Claude Sessions/](docs/Claude%20Sessions/) for previous session context
+4. Read [docs/ARCHITECTURE_OVERVIEW.md](docs/ARCHITECTURE_OVERVIEW.md) for high-level architecture
+5. Check [docs/decisions/](docs/decisions/) for rationale behind design choices
+6. Run code as-is first to understand flow
+7. Make changes incrementally, test after each change
 
 ## Contact
 

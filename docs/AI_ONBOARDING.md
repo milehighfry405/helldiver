@@ -8,9 +8,10 @@ If the user says "read the docs and get up to speed", do this:
 
 1. **Read this file first** (you're already here ✓)
 2. **Read [README.md](../README.md)** - Project overview, installation, usage
-3. **Read [ARCHITECTURE_OVERVIEW.md](ARCHITECTURE_OVERVIEW.md)** - High-level architecture
-4. **Check [Claude Sessions/](Claude%20Sessions/)** - Previous session context (if continuing)
-5. **Browse [decisions/](decisions/)** - ADRs for architectural decisions
+3. **Read [GRAPH_ARCHITECTURE.md](GRAPH_ARCHITECTURE.md)** - Knowledge graph design decisions and strategy
+4. **Read [ARCHITECTURE_OVERVIEW.md](ARCHITECTURE_OVERVIEW.md)** - High-level architecture
+5. **Check [Claude Sessions/](Claude%20Sessions/)** - Previous session context (if continuing)
+6. **Browse [decisions/](decisions/)** - ADRs for architectural decisions
 
 **Total reading time: 5-10 minutes**
 
@@ -21,6 +22,7 @@ helldiver/
 ├── README.md                           # START HERE - Project overview for humans and AI
 ├── docs/
 │   ├── AI_ONBOARDING.md               # THIS FILE - Navigation guide for AI
+│   ├── GRAPH_ARCHITECTURE.md           # Knowledge graph design (group_id, schema, custom entities)
 │   ├── ARCHITECTURE_OVERVIEW.md        # System architecture, design patterns
 │   ├── Claude Sessions/               # Session continuation files
 │   │   ├── README.md                  # Explains session continuation system
@@ -55,14 +57,15 @@ helldiver/
 
 ### Scenario 3: Making Architectural Changes
 
-**User says**: "Let's change how episode naming works" or "Refactor the chunking strategy"
+**User says**: "Let's change how episode naming works" or "Refactor the chunking strategy" or "Change group_id strategy"
 
 **You should**:
 1. Read [README.md](../README.md) - Current architecture
-2. Read relevant ADR in [decisions/](decisions/) - Understand existing rationale
-3. Read [ARCHITECTURE_OVERVIEW.md](ARCHITECTURE_OVERVIEW.md) - See how it fits overall
-4. Propose changes, discuss tradeoffs
-5. **After implementing**: Create new ADR or update existing one
+2. Read [GRAPH_ARCHITECTURE.md](GRAPH_ARCHITECTURE.md) - If graph-related, understand current design
+3. Read relevant ADR in [decisions/](decisions/) - Understand existing rationale
+4. Read [ARCHITECTURE_OVERVIEW.md](ARCHITECTURE_OVERVIEW.md) - See how it fits overall
+5. Propose changes, discuss tradeoffs
+6. **After implementing**: Update [GRAPH_ARCHITECTURE.md](GRAPH_ARCHITECTURE.md) or create/update ADR
 
 ### Scenario 4: Debugging Issues
 

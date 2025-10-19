@@ -729,11 +729,38 @@ Extract ONLY the topic (2-10 words). Be specific. If multiple topics, list them 
                 if block.type == "text":
                     topic = block.text.strip()
 
-            print(f"\nYou're requesting deep research on: '{topic}'")
+            # Generate confirmation summary with context
+            print_status("UNDERSTANDING", "Let me confirm what I'll research...")
+
+            confirmation_summary_prompt = f"""Based on this conversation:
+
+{recent_context}
+
+The user wants deep research on: "{topic}"
+
+Provide a brief confirmation (2-3 sentences) summarizing:
+1. What specific aspect you'll research
+2. Why this will be valuable given the conversation context
+
+Be conversational and show you understand the context."""
+
+            summary_response = anthropic_client.messages.create(
+                model="claude-sonnet-4-5",
+                max_tokens=300,
+                temperature=0.3,
+                messages=[{"role": "user", "content": confirmation_summary_prompt}]
+            )
+
+            summary = ""
+            for block in summary_response.content:
+                if block.type == "text":
+                    summary = block.text.strip()
+
+            print(f"\n{summary}\n")
             print("This will spawn 4 new specialist workers (3-5 minutes).")
 
             # Confirm with intent detection
-            confirm_input = input("\nProceed? ").strip()
+            confirm_input = input("\nReady to proceed? ").strip()
 
             confirm_check = f"""User said: "{confirm_input}"
 
@@ -858,10 +885,20 @@ Be conversational, insightful, and help them think deeper."""
             if block.type == "text":
                 assistant_response += block.text
 
-        # Show cache stats
+        # Show cache stats with actual savings calculation
         cache_read = getattr(response.usage, 'cache_read_input_tokens', 0)
+        cache_created = getattr(response.usage, 'cache_creation_input_tokens', 0)
+        input_tokens = getattr(response.usage, 'input_tokens', 0)
+
         if cache_read > 0:
-            print_status("CACHE", f"Read {cache_read} cached tokens (90% savings!)")
+            # Calculate actual cost savings
+            # Regular: $3.00/M tokens, Cached: $0.30/M tokens = 90% savings on cached portion
+            regular_cost = (cache_read / 1_000_000) * 3.00
+            cached_cost = (cache_read / 1_000_000) * 0.30
+            savings = regular_cost - cached_cost
+            print_status("CACHE", f"Read {cache_read:,} cached tokens (saved ${savings:.4f})")
+        elif cache_created > 0:
+            print_status("CACHE", f"Created cache of {cache_created:,} tokens (writes cost +25%)")
 
         print(f"\nAssistant: {assistant_response}\n")
 
@@ -909,7 +946,13 @@ async def commit_research_episode(
     from datetime import datetime
 
     # Generate metadata for grouping episodes
-    session_name = session.episode_name or session.query
+    # For deep research, session.query is temporarily set to the deep research episode name
+    # For initial research, use session.episode_name
+    if research_type == "deep":
+        session_name = session.query  # Deep research uses the temp query value (deep research topic)
+    else:
+        session_name = session.episode_name or session.query  # Initial research uses episode_name
+
     safe_session_name = session_name.replace(" ", "_").replace("/", "_")
     timestamp = datetime.now().isoformat()
 
@@ -927,7 +970,8 @@ async def commit_research_episode(
 
     episode_results = []
 
-    # Commit worker episodes
+    # Commit worker episodes with retry logic for rate limits
+    import time as time_module
     for worker_id, worker_name in worker_mapping.items():
         if worker_id == "critical_analysis":
             findings = critical_analysis
@@ -953,25 +997,52 @@ Worker Role: {worker_name}
         # Source description: Links episodes from same session
         source_description = f"{research_type.title()} Research | Session: {session_name} | {timestamp}"
 
-        # Commit episode
-        result = await graphiti_client.commit_episode(
-            agent_id="helldiver",
-            original_query=episode_name,  # Use full episode name as query
-            tasking_context={
-                "type": research_type,
-                "worker": worker_name,
-                "session": session_name,
-                "parent_episode": parent_episode_id if parent_episode_id else "root",
-                "group_id": group_id,
-                "source_description": source_description
-            },
-            findings_narrative=episode_body,
-            user_context=source_description
-        )
+        # Commit episode with retry logic for rate limits
+        max_retries = 3
+        retry_delay = 2  # seconds
+        result = None
 
-        if result and result.get("status") == "success":
-            episode_results.append(result.get("episode_name", episode_name))
-            print_status("EPISODE", f"✓ {episode_name}")
+        for attempt in range(max_retries):
+            try:
+                result = await graphiti_client.commit_episode(
+                    agent_id="helldiver",
+                    original_query=episode_name,  # Use full episode name as query
+                    tasking_context={
+                        "type": research_type,
+                        "worker": worker_name,
+                        "session": session_name,
+                        "parent_episode": parent_episode_id if parent_episode_id else "root",
+                        "group_id": group_id,
+                        "source_description": source_description
+                    },
+                    findings_narrative=episode_body,
+                    user_context=source_description
+                )
+
+                if result and result.get("status") == "success":
+                    episode_results.append(result.get("episode_name", episode_name))
+                    print_status("EPISODE", f"✓ {episode_name}")
+                    break  # Success, exit retry loop
+                elif result and "rate limit" in result.get("error", "").lower():
+                    # Rate limit hit, retry with backoff
+                    if attempt < max_retries - 1:
+                        wait_time = retry_delay * (attempt + 1)  # Progressive backoff: 2s, 4s, 6s
+                        print_status("RETRY", f"Rate limit hit, waiting {wait_time}s before retry {attempt + 2}/{max_retries}")
+                        time_module.sleep(wait_time)
+                    else:
+                        print_status("ERROR", f"Failed after {max_retries} retries: {episode_name}")
+                else:
+                    # Other error, don't retry
+                    print_status("ERROR", f"Failed to commit {episode_name}: {result.get('error', 'Unknown error')}")
+                    break
+            except Exception as e:
+                if attempt < max_retries - 1 and "rate limit" in str(e).lower():
+                    wait_time = retry_delay * (attempt + 1)
+                    print_status("RETRY", f"Exception: {str(e)}, waiting {wait_time}s")
+                    time_module.sleep(wait_time)
+                else:
+                    print_status("ERROR", f"Exception committing {episode_name}: {str(e)}")
+                    break
 
     # Return summary
     return {
@@ -1625,6 +1696,9 @@ async def retroactive_commit_research(session: ResearchSession, session_dir: str
 
     print_status("COMMITTING", "Writing research episodes to graph...")
 
+    # Track total episodes committed
+    total_episodes_committed = 0
+
     # Commit initial research if needed
     if not session.initial_episode_id:
         # Find initial research directory (supports both old and new structure)
@@ -1690,8 +1764,10 @@ async def retroactive_commit_research(session: ResearchSession, session_dir: str
             session.query = old_query
 
             if result and result.get("status") == "success":
-                session.initial_episode_id = result.get("episode_name", "")
-                print_status("SUCCESS", f"Initial research episode: {session.initial_episode_id}")
+                episode_count = result.get("episode_count", 0)
+                total_episodes_committed += episode_count
+                session.initial_episode_id = f"{session.episode_name} ({episode_count} worker episodes)"
+                print_status("SUCCESS", f"Initial research: {episode_count} episodes committed")
 
     # Commit deep research episodes if needed
     for i in range(1, session.deep_research_count + 1):
@@ -1749,11 +1825,16 @@ async def retroactive_commit_research(session: ResearchSession, session_dir: str
                 session.query = old_query
 
                 if result and result.get("status") == "success":
-                    episode_id = result.get("episode_name", "")
+                    episode_count = result.get("episode_count", 0)
+                    total_episodes_committed += episode_count
+                    episode_id = f"{topic} ({episode_count} worker episodes)"
                     session.deep_episode_ids.append(episode_id)
-                    print_status("SUCCESS", f"Deep research {i} episode: {episode_id}")
+                    print_status("SUCCESS", f"Deep research {i}: {episode_count} episodes committed")
 
-    print_status("COMPLETE", f"Committed {1 + len(session.deep_episode_ids)} research episodes")
+    print_status("COMPLETE", f"Committed {total_episodes_committed} total episodes")
+
+    # Save updated session metadata (so we don't ask to commit again next time)
+    session.save_metadata()
 
 
 def main():

@@ -84,13 +84,13 @@ class GraphitiClient:
             # Add episode to Graphiti
             if self.graphiti:
                 try:
-                    from datetime import datetime
+                    from datetime import datetime, timezone
 
                     await self.graphiti.add_episode(
                         name=episode_name,
                         episode_body=findings_narrative,
                         source_description=source_description,
-                        reference_time=datetime.now(),
+                        reference_time=datetime.now(timezone.utc),
                         group_id=group_id
                     )
 
