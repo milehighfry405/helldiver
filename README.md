@@ -9,12 +9,13 @@
 **When user says "read the README"**, do this:
 
 1. **Read this entire file** (you're doing that now ✓)
-2. **Read [docs/AI_ONBOARDING.md](docs/AI_ONBOARDING.md)** - Navigation guide and workflows
-3. **Read [docs/GRAPH_ARCHITECTURE.md](docs/GRAPH_ARCHITECTURE.md)** - Knowledge graph design decisions and strategy
-4. **Check [docs/Claude Sessions/](docs/Claude%20Sessions/)** - Read latest `SESSION_SUMMARY_*.md` for previous context
-5. **Read [docs/COMMIT_CHECKLIST.md](docs/COMMIT_CHECKLIST.md)** - Pre-commit checklist (follow before EVERY commit)
+2. **Read [docs/CURRENT_WORK.md](docs/CURRENT_WORK.md)** - **START HERE** - What we're working on RIGHT NOW
+3. **Read [docs/AI_ONBOARDING.md](docs/AI_ONBOARDING.md)** - Navigation guide and workflows
+4. **Read [docs/GRAPH_ARCHITECTURE.md](docs/GRAPH_ARCHITECTURE.md)** - Knowledge graph design decisions and strategy
+5. **Check [docs/Claude Sessions/](docs/Claude%20Sessions/)** - Read latest `SESSION_SUMMARY_*.md` for previous context
+6. **Read [docs/COMMIT_CHECKLIST.md](docs/COMMIT_CHECKLIST.md)** - Pre-commit checklist (follow before EVERY commit)
 
-**Then say**: "Context loaded. I've read the README, AI_ONBOARDING, latest session summary, and commit checklist. Ready to continue!"
+**Then say**: "Context loaded. Current focus: [summary from CURRENT_WORK.md]. Ready to continue!"
 
 **CRITICAL RULES**:
 - **Before ANY git commit**: Re-read [docs/COMMIT_CHECKLIST.md](docs/COMMIT_CHECKLIST.md) and follow it
@@ -28,8 +29,6 @@
 **New session?** Say: `"Read the README"` → Claude loads all context
 
 **Ready to commit?** Say: `"commit"` → Claude checks docs, updates as needed, proposes commit
-
-**Need help?** Read [docs/USER_CHEATSHEET.md](docs/USER_CHEATSHEET.md) for quick reference
 
 ---
 
@@ -67,17 +66,18 @@ helldiver/
 │       ├── session.json       # Session metadata (includes tasking context)
 │       └── refinement_*.txt/json  # Refinement logs (includes tasking + refinement)
 ├── docs/
+│   ├── CURRENT_WORK.md        # **START HERE** - Active tasks, next steps, open questions
 │   ├── AI_ONBOARDING.md       # Primary entry point for AI assistants
-│   ├── ARCHITECTURE_OVERVIEW.md
 │   ├── GRAPH_ARCHITECTURE.md  # Knowledge graph design decisions (group_id, schema, custom entities)
+│   ├── ARCHITECTURE_OVERVIEW.md
+│   ├── COMMIT_CHECKLIST.md    # Pre-commit checklist for AI (auto-updates docs)
 │   ├── decisions/             # Architecture Decision Records (ADRs)
 │   │   ├── 001-episode-naming-strategy.md
 │   │   ├── 002-graphiti-chunking-strategy.md
 │   │   └── 003-episode-grouping-metadata.md
 │   └── Claude Sessions/       # Session continuation files (when Claude Code runs out of context)
 │       ├── README.md          # Explains session continuation system
-│       ├── SESSION_SUMMARY_1.md
-│       └── SESSION_SUMMARY_2.md
+│       └── SESSION_SUMMARY_1-4.md
 ├── scripts/
 │   └── kill_agents.py         # Utility to kill zombie processes
 ├── .env                       # API keys (gitignored)

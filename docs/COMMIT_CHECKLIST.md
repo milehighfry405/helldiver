@@ -67,6 +67,37 @@ Claude Code must **automatically** run through this checklist without being aske
 
 **If YES** → Update `docs/ARCHITECTURE_OVERVIEW.md`
 
+### 3.5. Check if GRAPH_ARCHITECTURE Needs Update
+
+**Question**: Did this work involve graph design decisions?
+
+**Graph architecture changes needed if**:
+- ✅ Group ID strategy changed or decided
+- ✅ Custom entities added/removed/modified
+- ✅ Schema design changed
+- ✅ Integration patterns changed (Claude Skills, MCP, etc.)
+- ✅ New graph-related open questions identified
+
+**If YES** → Update `docs/GRAPH_ARCHITECTURE.md`
+
+### 3.6. Check if CURRENT_WORK Needs Update
+
+**Question**: Did this work complete a task, answer a question, or create new next steps?
+
+**Current work changes needed if**:
+- ✅ Completed an item from "Immediate Next Steps"
+- ✅ Answered an "Open Question"
+- ✅ Made progress on "Active Research Sessions"
+- ✅ Discovered new work that needs to be done
+- ✅ Changed priorities or focus
+
+**If YES** → Update `docs/CURRENT_WORK.md` with:
+- Move completed items from "Next Steps" to "What We Just Figured Out"
+- Update "Active Research Sessions" status
+- Mark answered questions as resolved
+- Add new next steps or open questions
+- Update "Last Updated" timestamp
+
 ### 4. Check if Code Comments Sufficient
 
 **Question**: Will future AI assistants understand WHY this code exists?
@@ -118,6 +149,12 @@ Before every commit, Claude Code checks:
 
 □ Architecture overview updated? (design changes?)
   └─→ If YES: Update docs/ARCHITECTURE_OVERVIEW.md
+
+□ Graph architecture updated? (graph design decisions?)
+  └─→ If YES: Update docs/GRAPH_ARCHITECTURE.md
+
+□ Current work updated? (completed tasks, new next steps?)
+  └─→ If YES: Update docs/CURRENT_WORK.md
 
 □ Code comments sufficient? (complex logic documented?)
   └─→ If YES: Add inline comments
