@@ -1,115 +1,224 @@
 ---
 description: Load complete project context for new session
+allowed-tools: [Read, Bash, Glob]
 ---
 
 # Onboard: Load Project Context
 
-You are loading context for the Helldiver research project. This ensures you have all necessary information to continue work.
+You are an **expert context loader** for the Helldiver research project. Your mission: Get future Claude up to speed in <30 seconds with complete, relevant context.
 
-## Step 1: Read Core Context Files
+**Your expertise**:
+- Deep understanding of Helldiver's documentation structure
+- Intelligent context prioritization (what's needed NOW vs nice-to-have)
+- Semantic analysis of what type of work is active
+- Concise context summarization
 
-Read these files **in order**:
+**Your standards**: SEAL Team 6. Load exactly what's needed. No more, no less. Fast and complete.
 
-1. **CLAUDE.md** (if you haven't already - skip if just read)
+---
+
+## Step 1: Read Core Context Files (ALWAYS)
+
+<step_1_instructions>
+Read these files **in order** (use Read tool):
+
+1. **CLAUDE.md**
    - Critical rules (never break these)
    - Design rationale (why we built it this way)
    - File map (where things are)
+   - Last session recap
 
-2. **docs/CURRENT_WORK.md** (MOST IMPORTANT - read completely)
+2. **docs/CURRENT_WORK.md** (MOST IMPORTANT)
    - Active Focus (what we're working on NOW)
-   - What We Just Figured Out (recent decisions)
+   - What We Just Figured Out (recent wins)
    - Active Research Sessions (in-flight work)
    - Immediate Next Steps (ordered tasks)
-   - Open Questions (prioritized by High/Medium/Future)
+   - Open Questions (prioritized)
    - Key Learnings This Session
 
-## Step 2: Check Git History
+**Why these matter**:
+- CLAUDE.md: Prevents repeating painful mistakes (timezone bugs, group_id validation, etc.)
+- CURRENT_WORK.md: Tells you the mental state and priorities RIGHT NOW
+</step_1_instructions>
 
+---
+
+## Step 2: Load Latest Session Summary (ALWAYS)
+
+<step_2_instructions>
+**Find and read the latest session summary**:
+
+```bash
+ls docs/archive/sessions/ | grep SESSION_SUMMARY | sort | tail -1
+```
+
+Then read that file using Read tool.
+
+**Why this is ALWAYS needed**:
+- User switches computers frequently
+- Session summaries capture conversation context (not just code changes)
+- Contains debugging journeys, user questions, decisions that won't be in git log
+- This is how continuity works across computers
+
+**What to extract**:
+- What We Worked On (the journey)
+- Problems Solved (debugging context)
+- Decisions Made (WHY we chose things)
+- User Questions & Clarifications (confusion points to avoid repeating)
+- Next Session Should (what's ready to continue)
+
+This gives you the **mental state** from last session, not just code state.
+</step_2_instructions>
+
+---
+
+## Step 3: Check Git History
+
+<step_3_instructions>
 Run these commands:
 
 ```bash
 git log --oneline -10
 ```
 
-This shows recent commits. Note the most recent commit message.
+This shows recent commits. Note:
+- Most recent commit (what was just completed)
+- Pattern of work (are we iterating on one thing or jumping topics?)
+- Frequency (how long since last work?)
 
 ```bash
 git status
 ```
 
-This shows any uncommitted changes currently in progress.
+This shows:
+- Uncommitted changes (work in progress)
+- Current branch
+- Sync status with remote
 
-## Step 3: Determine Context Depth Needed
+**Combine git context with session summary**:
+- Git log shows WHAT changed
+- Session summary shows WHY and HOW (the journey)
+- Together: Complete picture
+</step_3_instructions>
 
-**Quick onboard** (daily work, continuing from yesterday):
-- You've read CLAUDE.md and CURRENT_WORK.md
-- You've checked git log
-- This is usually sufficient
+---
 
-**Deep onboard** (after break, forgot context, new computer):
-- Also read: **docs/GRAPH_ARCHITECTURE.md** (if graph-related work)
-- Also read: Latest **docs/archive/sessions/SESSION_SUMMARY_*.md**
-  - Find latest: `ls docs/archive/sessions/ | grep SESSION_SUMMARY | sort | tail -1`
-  - This gives deep conversation context
+## Step 4: Load Graph Architecture Context (IF Needed)
 
-## Step 4: Check for Graph-Related Work
+<step_4_instructions>
+**Determine if graph-related work is active**:
 
-If CURRENT_WORK.md mentions:
+Check if CURRENT_WORK.md Active Focus mentions:
 - Group ID strategy
 - Custom entities
 - Graph schema
 - Graphiti
 - Neo4j
 - MCP integration
+- Episode structure
 
-Then also read: **docs/GRAPH_ARCHITECTURE.md**
+**If YES, also read**: `docs/GRAPH_ARCHITECTURE.md`
 
-## Step 5: Output Summary
+**Why conditional**:
+- Not all work touches graph (could be docs, plugins, refactoring)
+- Only load if semantically relevant to current work
+- Saves time when not needed
 
-After reading all necessary files, output EXACTLY this format:
+**What to extract from GRAPH_ARCHITECTURE.md**:
+- Current group_id strategy
+- Custom entity design status
+- Open questions about graph structure
+- Key insights/learnings
+
+**If NO**: Skip this file (not needed for current work)
+</step_4_instructions>
+
+---
+
+## Step 5: Synthesize and Output Context Summary
+
+<step_5_instructions>
+After reading all necessary files, synthesize into concise output:
 
 ```
 ✓ Context Loaded
 
 Last Commit: [first line from git log -1]
+Last Session: [topic from SESSION_SUMMARY filename]
 Active Focus: [from CURRENT_WORK.md "Active Focus" section]
-Status: [from CURRENT_WORK.md - current project status]
 
 Next Steps:
 1. [First item from CURRENT_WORK.md "Immediate Next Steps"]
 2. [Second item if exists]
+3. [Third item if exists]
 
-Open Questions: [count] ([list high-priority ones])
+Open Questions: [count] ([list HIGH priority ones only])
+
+[If graph work is active]
+Graph Status: [1 sentence from GRAPH_ARCHITECTURE.md or CURRENT_WORK.md]
 
 Ready to continue! What would you like to work on?
 ```
 
-**Keep output concise** - context is loaded, don't repeat entire docs.
+**Quality standards**:
+- ✅ Concise (not dumping entire file contents)
+- ✅ Actionable (user knows what to do next)
+- ✅ Complete (nothing important missing)
+- ✅ Fast (<30 seconds total time)
+</step_5_instructions>
+
+---
 
 ## Example Output
 
 ```
 ✓ Context Loaded
 
-Last Commit: fix: Add reference_time to Graphiti API call
-Active Focus: Building optimal knowledge graph architecture
-Status: Active development on custom entities research, group_id strategy under review
+Last Commit: refactor: Rebuild plugins with AI-native logic
+Last Session: Plugin system migration (SESSION_SUMMARY_6)
+Active Focus: Rebuilding documentation plugins with best-in-class prompt engineering
 
 Next Steps:
-1. Complete custom entities research (continue refinement)
-2. Decide group_id strategy (single global vs hierarchical)
+1. Rebuild /onboard plugin to ALWAYS load session summary
+2. Enhance /session-end with XML tags and few-shot examples
+3. Test all rebuilt plugins end-to-end
 
-Open Questions: 3 High Priority
-- Custom entities: Use them? Which types?
-- Group ID strategy: Single global vs hierarchical?
-- Schema rigidity: How much flexibility vs structure?
+Open Questions: 2 High Priority
+- Should /commit use semantic ADR matching or keep keyword search? (RESOLVED: semantic)
+- How to handle evolving ADRs vs creating new ones? (RESOLVED: update existing)
 
 Ready to continue! What would you like to work on?
 ```
 
-## Notes
+---
 
-- **Do not** read docs/ARCHITECTURE_OVERVIEW.md unless specifically needed (it's reference material)
-- **Do not** read all session summaries (only latest if doing deep onboard)
-- **Do not** dump entire file contents to user (summarize key points)
-- **Time budget**: This should take <30 seconds total
+## Quality Standards (Never Compromise)
+
+<quality_checklist>
+Before outputting to user, verify:
+
+- ✅ Read CLAUDE.md (critical rules loaded)
+- ✅ Read CURRENT_WORK.md (current state understood)
+- ✅ Read latest SESSION_SUMMARY (conversation context loaded)
+- ✅ Checked git log (recent commits understood)
+- ✅ Checked git status (current changes noted)
+- ✅ Read GRAPH_ARCHITECTURE.md if relevant (graph context loaded if needed)
+- ✅ Output is concise (not dumping files)
+- ✅ Next steps are clear (user knows what to do)
+- ✅ Took <30 seconds
+
+**If ANY of these are false, go back and fix.**
+
+This is SEAL Team 6 level onboarding. Fast, complete, actionable.
+</quality_checklist>
+
+---
+
+## Notes for Excellence
+
+- **ALWAYS read session summary** - This is the continuity mechanism, not optional
+- **Use semantic analysis** - Determine if graph docs are needed based on current work
+- **Synthesize, don't dump** - User doesn't need entire file contents, just key points
+- **Be actionable** - User should know exactly what to do next
+- **Trust the system** - Session summaries + CURRENT_WORK.md capture everything needed
+- **Time budget** - This should take <30 seconds total (fast reads, concise output)

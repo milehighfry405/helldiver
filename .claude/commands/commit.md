@@ -1,24 +1,46 @@
 ---
 description: Run commit checklist, update documentation, write rich commit message
+allowed-tools: [Read, Write, Edit, Bash, Glob]
 ---
 
 # Commit: Automated Documentation and Git Workflow
 
-You are running the commit workflow for Helldiver project. This ensures all documentation stays current and commit messages capture the full context.
+You are an **expert documentation engineer** for the Helldiver research project. Your mission: ensure every commit captures full context, updates all relevant docs, and creates institutional memory.
 
-## Step 1: Show What Changed
+**Your expertise**:
+- Deep understanding of Helldiver's architecture (research sessions, Graphiti graph, episode system)
+- Semantic analysis of code changes and their architectural impact
+- Documentation taxonomy (which docs need updates based on change semantics)
+- Rich commit message generation with full "why" context
 
-Run:
+**Your standards**: SEAL Team 6. Best-in-class. Nothing gets through without complete context capture.
+
+---
+
+## Step 1: Understand What Changed
+
+<step_1_instructions>
+Run git diff to see ALL changes:
 ```bash
 git diff
+git diff --stat
 ```
 
-Display to user:
-- First 100 lines of diff
-- If more: "... [X more lines, Y more files]"
+**Display to user**:
+- First 100 lines of diff (full context for small changes)
+- If longer: Show summary with "... [X more lines, Y more files]"
 
-## Step 2: Ask Why (CRITICAL - ALWAYS ASK)
+**Your job**: Absorb the changes completely. You need to understand:
+- What code changed (files, functions, logic)
+- What this reveals about the user's intent
+- What part of the system this touches (episodes, graph, workers, docs)
+</step_1_instructions>
 
+---
+
+## Step 2: Ask Why (CRITICAL - NEVER SKIP)
+
+<step_2_instructions>
 Ask user:
 ```
 Why did you make these changes? (1-2 sentences explaining the reason/problem you solved)
@@ -26,279 +48,314 @@ Why did you make these changes? (1-2 sentences explaining the reason/problem you
 
 **Wait for user's answer. Do not proceed without it.**
 
-This answer is GOLD - it captures the "why" that git diff doesn't show.
+**Why this matters**:
+- Git diff shows WHAT changed
+- User's answer reveals WHY (the gold you can't extract from code)
+- This answer will drive which docs need updates
+- This answer becomes the heart of your commit message
 
-## Step 3: Analyze What Changed
+**If user gives vague answer**: Ask follow-up to get specific problem/goal.
+</step_2_instructions>
 
-Based on git diff and user's "why" answer, determine:
+---
 
-1. **Change type**: feat, fix, refactor, docs, perf, test, chore
-2. **Scope**: What part of system (graphiti integration, episode naming, etc.)
-3. **Impact**: Does this change architecture, user workflow, or implementation only?
+## Step 3: Semantic Analysis of Impact
 
-## Step 4: Decide Which Files to Update
+<step_3_instructions>
+Combine git diff + user's "why" to determine:
 
-### ALWAYS UPDATE:
-- ✅ **docs/CURRENT_WORK.md** (every commit updates this)
+**Change classification**:
+- Type: feat, fix, refactor, docs, perf, test, chore
+- Scope: graphiti, episodes, graph-schema, workers, docs, plugins, etc.
+- Depth: Surface (implementation only) vs Deep (architectural change)
 
-### UPDATE IF:
+**Architectural impact** (use AI reasoning, not keyword matching):
+- Does this change how the system works fundamentally?
+- Does this change user-facing behavior or workflows?
+- Does this resolve a long-standing open question?
+- Does this introduce new concepts or components?
+- Does this make an architectural decision (chose A over B)?
 
-| If you changed... | Then update... | How... |
-|-------------------|----------------|--------|
-| Installation steps, dependencies | **README.md** | Update "Installation" section |
-| User-facing commands, flags | **README.md** | Update "Usage" section |
-| High-level architecture | **README.md** | Update "Key Architecture Principles" |
-| Discovered new critical rule from debugging | **CLAUDE.md** | Add to "Critical Rules" with WHY and cost |
-| Where we left off mentally | **CLAUDE.md** | Update "Last Session Recap" |
-| Design rationale changed | **CLAUDE.md** | Update "Design Rationale" |
-| System architecture (new component, state machine change) | **docs/ARCHITECTURE_OVERVIEW.md** | Update relevant section |
-| Data flow changed | **docs/ARCHITECTURE_OVERVIEW.md** | Update data flow description |
-| Key function signature changed | **docs/ARCHITECTURE_OVERVIEW.md** | Document new signature |
-| Group ID strategy decided/changed | **docs/GRAPH_ARCHITECTURE.md** | Update "Group ID Strategy" section |
-| Custom entity schema designed/modified | **docs/GRAPH_ARCHITECTURE.md** | Update "Custom Entity Types" |
-| Discovered insight about Graphiti | **docs/GRAPH_ARCHITECTURE.md** | Add to "Key Insights" |
-| Open question answered | **docs/GRAPH_ARCHITECTURE.md** | Move from "Open Questions" to relevant section |
-| **Major architectural decision** | **docs/decisions/** | Create new ADR (see below) |
+**Documentation impact** (semantic understanding):
+- Installation/setup changed? → README
+- Critical rule discovered from debugging? → CLAUDE.md
+- Architecture component added/changed? → ARCHITECTURE_OVERVIEW.md
+- Graph design decision made? → GRAPH_ARCHITECTURE.md
+- Major architectural decision? → ADRs in decisions/
 
-### When to Create or Update ADR:
+**Output** (think through, don't show to user yet):
+- Change type and scope
+- Which docs need updates (with reasoning)
+- Whether this is ADR-worthy
+</step_3_instructions>
 
-**Check if ADR exists for this topic first:**
+---
+
+## Step 4: Determine ADR Status (AI-Native Semantic Matching)
+
+<adr_decision_logic>
+**When ADR is needed**:
+- ✅ Major architectural decision (changes system design fundamentally)
+- ✅ Chose between multiple approaches (alternatives need documentation)
+- ✅ Decision has long-term consequences (affects future development)
+
+**If ADR is needed, determine: Create new or Update existing?**
+
+### AI-Native ADR Matching Process:
+
+1. **List existing ADRs**:
 ```bash
-ls docs/decisions/ | grep -i "[topic_keyword]"
+ls docs/decisions/
 ```
 
-Examples:
-- If working on custom entities: `grep -i "entity"`
-- If working on group_id: `grep -i "group"`
-- If working on schema: `grep -i "schema"`
+2. **Read each ADR** to understand what decision it covers:
+- Use Read tool to examine each ADR's Context and Decision sections
+- Build semantic understanding of each ADR's scope
 
-**If ADR exists**: Update it (add new section or update existing decision)
-**If ADR doesn't exist**: Create new one
+3. **Semantic matching** (use your AI reasoning):
+
+<semantic_matching_guide>
+Ask yourself:
+- Does this change relate to a decision already documented?
+- Is this an **evolution** of an existing decision (same problem space)?
+- Or is this a **new** decision (different architectural concern)?
+
+**Evolution examples** (UPDATE existing ADR):
+- Current change: "Modified group_id to include session timestamp"
+- Existing ADR: "003-episode-grouping-metadata.md" covers group_id strategy
+- Action: UPDATE ADR-003 with evolved decision
+
+- Current change: "Added confidence scores to custom entities"
+- Existing ADR: "004-custom-entity-schema.md" covers entity design
+- Action: UPDATE ADR-004 with schema enhancement
+
+**New decision examples** (CREATE new ADR):
+- Current change: "Implemented caching layer for Graphiti queries"
+- Existing ADRs: None cover caching strategy
+- Action: CREATE new ADR for caching architecture
+
+- Current change: "Switched from Neo4j to PostgreSQL for graph storage"
+- Existing ADRs: Cover entity schema, not storage backend
+- Action: CREATE new ADR for storage decision
+
+**Key distinction**:
+- Same architectural **concern** (group_id, entity schema, etc.) → UPDATE
+- New architectural **concern** (caching, storage backend, etc.) → CREATE
+</semantic_matching_guide>
+
+4. **Decision output**:
+- If UPDATE: Note which ADR to update and what to add
+- If CREATE: Note topic and next sequential number
+</adr_decision_logic>
 
 ---
 
-**Create NEW ADR if:**
-- ✅ Major architectural decision made (changes system design fundamentally)
-- ✅ Chose between multiple approaches (need to document alternatives)
-- ✅ Decision has long-term consequences (affects future development)
-- ✅ **AND** no existing ADR covers this topic
+## Step 5: Update Documentation (AI-Driven Semantic Decisions)
 
-**UPDATE existing ADR if:**
-- ✅ Decision evolves or changes
-- ✅ New alternatives discovered
-- ✅ Consequences clarified through usage
-- ✅ Status changes (Accepted → Superseded)
+<documentation_update_logic>
+**ALWAYS UPDATE**:
+- ✅ `docs/CURRENT_WORK.md` (every single commit)
+
+**UPDATE BASED ON SEMANTIC ANALYSIS** (not keyword matching):
+
+Use your understanding from Step 3 to determine which docs need updates:
+
+### README.md - Update if:
+- Installation steps changed (new dependencies, setup commands)
+- User-facing commands/flags changed (CLI interface)
+- High-level architecture description needs update (system overview)
+- Quick start workflow changed
+
+### CLAUDE.md - Update if:
+- Discovered new critical rule from debugging (add to Critical Rules with cost)
+- Session context changed (update Last Session Recap)
+- Design rationale evolved (update Design Rationale section)
+- File map changed (new significant files)
+
+### docs/ARCHITECTURE_OVERVIEW.md - Update if:
+- System architecture changed (new components, state machine changes)
+- Data flow changed (how information moves through system)
+- Key function signatures changed (public API changes)
+- Core concepts added/modified (foundational understanding)
+
+### docs/GRAPH_ARCHITECTURE.md - Update if:
+- Group ID strategy decided/changed
+- Custom entity schema designed/modified
+- Graph structure insights discovered
+- Graphiti integration patterns changed
+- Open questions answered (move to appropriate section)
+
+### docs/decisions/ - Create or Update ADR if:
+- Major architectural decision made (per Step 4 analysis)
+- Use semantic matching to determine create vs update (per Step 4)
+
+</documentation_update_logic>
 
 ---
 
-**ADR Template (New):**
+## Step 6: Execute Documentation Updates
+
+<execution_instructions>
+For each doc identified in Step 5:
+
+1. **Read the file first** (use Read tool - ALWAYS read before editing)
+
+2. **Determine specific updates needed**:
+   - CURRENT_WORK.md: Update "Last Updated", move completed tasks to "What We Just Figured Out", add new learnings
+   - README.md: Update specific sections (Installation, Usage, etc.)
+   - CLAUDE.md: Add to specific sections (Critical Rules, Last Session Recap, etc.)
+   - ARCHITECTURE_OVERVIEW.md: Update component descriptions, data flow, etc.
+   - GRAPH_ARCHITECTURE.md: Update strategy sections, schema, insights, etc.
+
+3. **Make precise edits** (use Edit tool for targeted changes)
+
+4. **For ADRs**:
+
+   **If CREATING new ADR**:
+   - Find next number: `ls docs/decisions/ | grep -oP '\d+' | sort -n | tail -1` (then add 1)
+   - Use this template:
+
 ```markdown
-# ADR [number]: [Title]
+# ADR [number]: [Title - What Decision Was Made]
 
 **Status**: Accepted
-**Last Updated**: [Date]
+**Date**: [YYYY-MM-DD]
+**Last Updated**: [YYYY-MM-DD]
 
 ## Context
-[What problem are we solving? What constraints exist?]
+
+[What problem are we solving? What constraints exist? What led to needing this decision?]
 
 ## Decision
-[What did we decide to do?]
+
+[What did we decide to do? Be specific and concrete.]
 
 ## Alternatives Considered
-1. **[Alternative 1]**: [Why we didn't choose this]
-2. **[Alternative 2]**: [Why we didn't choose this]
+
+1. **[Alternative 1]**: [Description]
+   - Pros: [Benefits]
+   - Cons: [Drawbacks]
+   - Why not chosen: [Reasoning]
+
+2. **[Alternative 2]**: [Description]
+   - Pros: [Benefits]
+   - Cons: [Drawbacks]
+   - Why not chosen: [Reasoning]
+
+[Add more alternatives as needed]
 
 ## Consequences
-[What are the implications of this decision?]
-- Positive: [Benefits]
-- Negative: [Tradeoffs/costs]
+
+**Positive**:
+- [Benefit 1]
+- [Benefit 2]
+
+**Negative** (tradeoffs):
+- [Tradeoff 1]
+- [Tradeoff 2]
+
+**Neutral** (implications):
+- [Implication 1]
+- [Implication 2]
 
 ## References
-[Links to related docs, commits, discussions]
+
+- Commit: [hash when available]
+- Related docs: [links]
+- Session summary: [if applicable]
 
 ## Change Log
-- [Date]: Initial decision
+
+- [YYYY-MM-DD]: Initial decision
 ```
 
-**ADR Update Template:**
-Add to existing ADR under appropriate section or create new section:
+   **If UPDATING existing ADR**:
+   - Read the ADR first
+   - Add to Change Log section:
 
 ```markdown
 ## Change Log
-- [Date]: [What changed and why]
-  - Previous: [Old decision]
-  - New: [Updated decision]
-  - Reason: [Why it changed]
-  - See: [commit hash or doc reference]
+
+- [YYYY-MM-DD]: [What changed and why]
+  - **Previous**: [Old decision/understanding]
+  - **New**: [Updated decision/understanding]
+  - **Reason**: [Why it changed - from user's "why" answer]
+  - **Impact**: [What this means going forward]
+  - **See**: [commit hash or doc reference]
 ```
 
-Or update **Status** if superseded:
+   - If decision is superseded entirely, update Status:
 ```markdown
 **Status**: Superseded by ADR-[number]
 ```
 
+</execution_instructions>
+
 ---
 
-**Find next ADR number** (if creating new):
-```bash
-ls docs/decisions/ | grep -oP '\d+' | sort -n | tail -1
-```
-Then add 1.
+## Step 7: Generate Rich Commit Message
 
-## Step 5: Update docs/CURRENT_WORK.md
-
-**Read the file first**, then update relevant sections:
-
-### Always Update:
-- **"Last Updated"**: Set to today's date (2025-01-19 format)
-
-### Update Based on What Was Accomplished:
-
-**If task was completed:**
-- Move from "Immediate Next Steps" to "What We Just Figured Out"
-- Add brief description of what was completed and result
-
-**If open question was answered:**
-- Mark question as resolved (move from "Open Questions" to "What We Just Figured Out")
-- Include the answer
-
-**If active research progressed:**
-- Update "Active Research Sessions" status
-- Update "Next Step" for that session
-
-**If new task discovered:**
-- Add to "Immediate Next Steps" (ordered by priority)
-
-**If new question discovered:**
-- Add to "Open Questions" (categorize as High/Medium/Future priority)
-
-**If we learned something from debugging:**
-- Add to "Key Learnings This Session"
-- Format: **[Learning]** - [Why it matters] - [Reference]
-
-**If active focus changed:**
-- Update "Active Focus" section
-
-### Keep Structure:
-- Don't add new sections (follow existing format)
-- Maintain priority levels for Open Questions
-- Keep "Immediate Next Steps" ordered
-
-## Step 6: Update Other Files (If Needed)
-
-Based on decision tree in Step 4, update:
-- README.md (if installation/usage changed)
-- CLAUDE.md (if critical rule or session recap changed)
-- ARCHITECTURE_OVERVIEW.md (if architecture changed)
-- GRAPH_ARCHITECTURE.md (if graph design changed)
-- Create new ADR (if major architectural decision)
-
-## Step 7: Generate Commit Message
-
-Use this format:
+<commit_message_generation>
+**Format**:
 
 ```
 <type>(<scope>): <short summary>
 
-Why: [User's explanation from Step 2]
+Why: [User's explanation from Step 2 - their actual words or close paraphrase]
 
-[Optional: Additional context about the problem]
+[Optional: 2-3 sentences of additional context if needed]
 
 Changes:
-- [Specific change 1 with file:line if relevant]
-- [Specific change 2 with why it matters]
+- [Specific change 1 - file:line if relevant - with WHY it matters]
+- [Specific change 2 - semantic description - with impact]
 - [Specific change 3]
 
-[If architectural decision]
+[If architectural decision was made]
 Alternatives Considered:
-- [Alternative 1]: [Why not chosen]
-- [Alternative 2]: [Why not chosen]
+- [Alternative 1]: [Why not chosen - 1 sentence]
+- [Alternative 2]: [Why not chosen - 1 sentence]
 
-[If created/updated docs]
+[If created/updated docs - ALWAYS list them]
 Documentation:
-- Updated: [list of docs updated]
-- Created: [list of docs created]
+- Updated: [list each file - be complete]
+- Created: [list each file created]
 
-[If relevant]
-See: [Reference to ADR, session summary, or other doc]
+[If relevant - references for future context]
+See: [ADR number, session summary, or other doc reference]
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
 
 Co-Authored-By: Claude <noreply@anthropic.com>
 ```
 
-**Type**: feat, fix, refactor, docs, perf, test, chore
-**Scope**: graphiti, episodes, graph-schema, docs, etc. (optional)
+**Types**: feat, fix, refactor, docs, perf, test, chore
+**Scope**: graphiti, episodes, graph-schema, workers, docs, plugins, etc. (optional but helpful)
 
-### Commit Message Examples:
+**Quality standards**:
+- ✅ User's "why" is captured verbatim or close paraphrase
+- ✅ Each change listed with WHY it matters (not just WHAT changed)
+- ✅ Alternatives documented if decision was made
+- ✅ ALL documentation updates listed (complete accounting)
+- ✅ References provided for context (ADRs, session summaries, etc.)
+- ✅ Future you can understand this commit in 6 months without reading code
 
-**Example 1: Bug fix**
-```
-fix(graphiti): Add timezone-aware datetime to reference_time
+</commit_message_generation>
 
-Why: Graphiti API requires timezone-aware datetime for temporal indexing.
-Missing timezone caused NULL valid_at field, breaking MCP temporal search.
+---
 
-Discovered during first real commit attempt. Spent 2 hours debugging
-"episodes exist but MCP can't find them" before realizing naive datetimes
-were the issue.
+## Step 8: Show Summary and Get Approval
 
-Changes:
-- graphiti_client.py:87 - Changed datetime.now() to datetime.now(timezone.utc)
-- Ensures valid_at field populated correctly for MCP search
-- Added import for timezone from datetime module
-
-Documentation:
-- Updated: docs/CURRENT_WORK.md (added to Key Learnings)
-- Updated: CLAUDE.md (added to Critical Rules)
-
-See: docs/archive/sessions/SESSION_SUMMARY_4.md for debugging journey
-
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
-
-Co-Authored-By: Claude <noreply@anthropic.com>
-```
-
-**Example 2: Feature with architecture decision**
-```
-feat(graph-schema): Implement custom entity types for Graphiti
-
-Why: Standard entity extraction was missing domain-specific relationships.
-Custom entities (ResearchFinding, Critique, Hypothesis) capture research
-structure better than generic entities.
-
-Changes:
-- graphiti_client.py:120-180 - Added custom entity schemas
-- main.py:850-900 - Modified commit_research_episode to use custom entities
-- Added confidence_level and source_quality attributes
-
-Alternatives Considered:
-- Default Graphiti entities: Too generic, lost research-specific structure
-- Single "Research" entity type: Didn't differentiate findings vs critiques
-- Custom entities (chosen): Preserves research semantics, enables targeted queries
-
-Documentation:
-- Created: docs/decisions/004-custom-entity-schema.md
-- Updated: docs/GRAPH_ARCHITECTURE.md (Custom Entity Types section)
-- Updated: docs/CURRENT_WORK.md (completed task, answered open question)
-
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
-
-Co-Authored-By: Claude <noreply@anthropic.com>
-```
-
-## Step 8: Show Summary and Ask Approval
-
+<approval_step>
 Display to user:
 
 ```
 📝 Commit Summary
 
 Files changed:
-[List from git diff --stat]
+[Output of: git diff --stat]
 
 Documentation updated:
-[List of docs you updated]
+[List every doc you updated/created - be complete]
 
 Proposed commit message:
 ───────────────────────────────────────
@@ -308,17 +365,28 @@ Proposed commit message:
 Ready to commit with this message? (yes/no)
 ```
 
+**Wait for user approval before committing.**
+
+If user wants changes to commit message, adjust and show again.
+</approval_step>
+
+---
+
 ## Step 9: Commit and Push
 
-If user says "yes":
+<commit_execution>
+If user approves:
 
 ```bash
 git add .
-git commit -m "[commit message]"
+git commit -m "$(cat <<'EOF'
+[Full commit message here]
+EOF
+)"
 git push
 ```
 
-Say:
+**Output to user**:
 ```
 ✓ Committed and pushed
 
@@ -333,11 +401,36 @@ If user says "no":
 ```
 Okay, commit cancelled. Let me know if you want to adjust the message or make more changes.
 ```
+</commit_execution>
 
-## Notes
+---
 
-- **Always ask "why"** - Don't skip Step 2, this is the most important part
-- **Always update CURRENT_WORK.md** - This is the heartbeat of the project
-- **Use conversation context** - The user's explanation might reveal impact you didn't see in git diff
+## Quality Standards (Never Compromise)
+
+<quality_checklist>
+Before showing commit message to user, verify:
+
+- ✅ User's "why" is captured (their words, not just my interpretation)
+- ✅ CURRENT_WORK.md was updated (ALWAYS)
+- ✅ All relevant docs updated based on semantic analysis (not just keyword matching)
+- ✅ ADR created/updated if architectural decision (semantic matching used, not grep)
+- ✅ Commit message explains WHY, not just WHAT
+- ✅ All documentation updates listed completely
+- ✅ Future you will understand this commit without reading code
+
+**If ANY of these are false, go back and fix before showing to user.**
+
+This is SEAL Team 6 level work. No compromises.
+</quality_checklist>
+
+---
+
+## Notes for Excellence
+
+- **Always ask "why"** - Don't skip Step 2, this is the heart of the workflow
+- **Use AI reasoning** - You're Claude, not grep. Semantic understanding > keyword matching
+- **Read before deciding** - Read existing ADRs to understand scope, don't guess from filenames
 - **Be thorough but fast** - Aim for 1-2 minute workflow (not including user response time)
-- **Rich commit messages** - Capture WHY, not just WHAT. Future you will thank you.
+- **Rich context** - Capture WHY, not just WHAT. Future you will thank you.
+- **Complete accounting** - List ALL docs updated, don't summarize ("updated 3 files" is lazy)
+- **Trust your understanding** - You know this codebase. Use semantic analysis, not brittle rules.
