@@ -437,6 +437,24 @@ Respond naturally to continue the conversation."""
         "refined_at": datetime.now().isoformat()
     }
 
+    # Add tasking conversation to refinement_log (this is the start of the continuous conversation)
+    # Format: convert conversation_history to refinement_log format
+    for msg in conversation_history:
+        if msg['role'] == 'user':
+            # Find the next assistant response
+            user_content = msg['content']
+            assistant_content = ""
+            # Get the corresponding assistant response (next message in history)
+            idx = conversation_history.index(msg)
+            if idx + 1 < len(conversation_history) and conversation_history[idx + 1]['role'] == 'assistant':
+                assistant_content = conversation_history[idx + 1]['content']
+
+            session.refinement_log.append({
+                "user_input": user_content,
+                "assistant_response": assistant_content,
+                "timestamp": datetime.now().isoformat()
+            })
+
     # Confirm understanding
     print_status("UNDERSTANDING", "Let me confirm what I'll research...")
 
@@ -512,6 +530,7 @@ def run_research_phase(session: ResearchSession, research_dir: str = None) -> st
     start_time = time.time()
     update_interval = 30  # Show update every 30s
     last_update = 0
+    timeout = 300  # 5 minute timeout (batch should complete in 2-3 min with 4k tokens)
 
     while True:
         batch_status = anthropic_client.messages.batches.retrieve(batch.id)
@@ -522,8 +541,18 @@ def run_research_phase(session: ResearchSession, research_dir: str = None) -> st
 
         elapsed = int(time.time() - start_time)
 
+        # Check for timeout
+        if elapsed > timeout:
+            print_status("TIMEOUT", f"Batch exceeded {timeout}s timeout. Batch may be stuck.")
+            print_status("INFO", f"Batch status: {batch_status.processing_status}")
+            counts = batch_status.request_counts
+            print_status("INFO", f"Completed: {counts.succeeded}, Failed: {counts.errored}, Processing: {counts.processing}")
+            print_status("ERROR", "Canceling batch and exiting...")
+            # Note: Anthropic batches can't be canceled, so we just exit
+            return "COMPLETE"
+
         # Show progress every 30s (max 6 updates = 3 minutes)
-        if elapsed - last_update >= update_interval and elapsed // update_interval <= 6:
+        if elapsed - last_update >= update_interval and elapsed // update_interval <= 20:  # Show up to 20 updates (10 min)
             counts = batch_status.request_counts
             print_status("PROGRESS", f"{elapsed}s elapsed - Processing: {counts.processing} | Complete: {counts.succeeded}")
             last_update = elapsed
@@ -578,7 +607,8 @@ def run_research_phase(session: ResearchSession, research_dir: str = None) -> st
         narrative=narrative,
         worker_results=worker_results,
         critical_analysis=critical_analysis,
-        parent_episode_id=parent_id
+        parent_episode_id=parent_id,
+        research_dir=research_dir
     ))
 
     if episode_result and episode_result.get("status") == "success":
@@ -920,7 +950,8 @@ async def commit_research_episode(
     narrative: str,
     worker_results: dict,
     critical_analysis: str,
-    parent_episode_id: str = None
+    parent_episode_id: str = None,
+    research_dir: str = None
 ) -> dict:
     """
     Commit research episodes to knowledge graph - ONE EPISODE PER WORKER for optimal chunking.
@@ -1044,12 +1075,97 @@ Worker Role: {worker_name}
                     print_status("ERROR", f"Exception committing {episode_name}: {str(e)}")
                     break
 
+    # Commit refinement episode (5th episode - THE GOLD)
+    # This contains the user's conversation/thinking that led to this research
+    if session.refinement_log:
+        print_status("DISTILLING", "Extracting user context from conversation...")
+        refinement_distilled = distill_refinement_context(session.refinement_log)
+
+        # Save distilled refinement to research folder (alongside worker files)
+        if research_dir:
+            refinement_file = os.path.join(research_dir, "refinement_distilled.txt")
+            with open(refinement_file, 'w', encoding='utf-8') as f:
+                f.write("USER REFINEMENT CONTEXT - DISTILLED\n")
+                f.write("="*80 + "\n")
+                f.write("This is THE GOLD - the user's thinking that led to this research.\n")
+                f.write("="*80 + "\n\n")
+                f.write(refinement_distilled)
+            print_status("SAVED", f"Refinement saved to {os.path.basename(research_dir)}/refinement_distilled.txt")
+
+        # Create refinement episode
+        refinement_episode_name = f"{session_name} - User Context"
+        refinement_body = f"""Research Query: {session.query}
+Research Type: {research_type.title()} Research
+Episode Type: User Refinement Context (THE GOLD)
+
+USER'S THINKING AND CONTEXT:
+{refinement_distilled}
+
+LINKED RESEARCH:
+This refinement context informed the research conducted by 4 specialist workers:
+- Academic Research
+- Industry Intelligence
+- Tool Analysis
+- Critical Analysis
+
+The user's mental models, priorities, and framing above provide the interpretive lens for understanding the research findings."""
+
+        refinement_source = f"{research_type.title()} Research - User Context | Session: {session_name} | {timestamp}"
+
+        # Commit with same retry logic
+        for attempt in range(max_retries):
+            try:
+                result = await graphiti_client.commit_episode(
+                    agent_id="helldiver",
+                    original_query=refinement_episode_name,
+                    tasking_context={
+                        "type": f"{research_type}_refinement",
+                        "worker": "User Context",
+                        "session": session_name,
+                        "parent_episode": parent_episode_id if parent_episode_id else "root",
+                        "group_id": group_id,
+                        "source_description": refinement_source,
+                        "weighting": "user_context > worker_findings"  # Mark as highest priority
+                    },
+                    findings_narrative=refinement_body,
+                    user_context=refinement_source
+                )
+
+                if result and result.get("status") == "success":
+                    episode_results.append(result.get("episode_name", refinement_episode_name))
+                    print_status("EPISODE", f"✓ {refinement_episode_name} (THE GOLD)")
+                    break
+                elif result and "rate limit" in result.get("error", "").lower():
+                    if attempt < max_retries - 1:
+                        wait_time = retry_delay * (attempt + 1)
+                        print_status("RETRY", f"Rate limit hit, waiting {wait_time}s before retry {attempt + 2}/{max_retries}")
+                        time_module.sleep(wait_time)
+                    else:
+                        print_status("ERROR", f"Failed after {max_retries} retries: {refinement_episode_name}")
+                else:
+                    print_status("ERROR", f"Failed to commit {refinement_episode_name}: {result.get('error', 'Unknown error')}")
+                    break
+            except Exception as e:
+                if attempt < max_retries - 1 and "rate limit" in str(e).lower():
+                    wait_time = retry_delay * (attempt + 1)
+                    print_status("RETRY", f"Exception: {str(e)}, waiting {wait_time}s")
+                    time_module.sleep(wait_time)
+                else:
+                    print_status("ERROR", f"Exception committing {refinement_episode_name}: {str(e)}")
+                    break
+    else:
+        print_status("WARNING", "No refinement context to commit (refinement_log is empty)")
+
+    # Clear refinement_log after commit (ready for next cycle)
+    session.refinement_log = []
+    print_status("RESET", "Refinement log cleared (ready for next research cycle)")
+
     # Return summary
     return {
         "status": "success" if episode_results else "error",
         "episode_names": episode_results,
         "episode_count": len(episode_results),
-        "message": f"Committed {len(episode_results)} worker episodes"
+        "message": f"Committed {len(episode_results)} episodes (workers + refinement)"
     }
 
 
@@ -1128,6 +1244,10 @@ Weighting: User's context > Research findings
         print_status("EPISODE", result['episode_name'])
         print_status("LINKED", f"Links to {1 + len(session.deep_episode_ids)} research episodes")
         print_status("WEIGHTING", "Refinement context weighted HIGHER than research")
+
+        # Clear refinement_log after commit
+        session.refinement_log = []
+        print_status("RESET", "Refinement log cleared")
     else:
         print_status("ERROR", result.get('message', 'Unknown error'))
 
@@ -1758,7 +1878,8 @@ async def retroactive_commit_research(session: ResearchSession, session_dir: str
                 research_type="initial",
                 narrative=narrative,
                 worker_results=worker_results,
-                critical_analysis=critical_analysis
+                critical_analysis=critical_analysis,
+                research_dir=initial_dir
             )
 
             session.query = old_query
@@ -1819,7 +1940,8 @@ async def retroactive_commit_research(session: ResearchSession, session_dir: str
                     narrative=f"Deep research on: {topic}",
                     worker_results=worker_results,
                     critical_analysis=critical_analysis,
-                    parent_episode_id=session.initial_episode_id
+                    parent_episode_id=session.initial_episode_id,
+                    research_dir=deep_dir
                 )
 
                 session.query = old_query

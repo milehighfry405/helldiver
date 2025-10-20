@@ -80,10 +80,11 @@ These are lessons from painful debugging sessions. **Read every session.**
 ## Design Rationale (Why We Built It This Way)
 
 ### Episode-Based Architecture
-**What**: Break research into discrete episodes (one per worker)
+**What**: Break research into discrete episodes (4 workers + 1 refinement per research)
 **Why**: Graphiti extracts richer entities from 1,400-2,600 token chunks
 **Alternative**: Single 9,000+ token episode (tested, extraction was sparse)
-**Decision**: One episode per worker
+**Decision**: One episode per worker + one for user's refinement context
+**Refinement Episode**: User's Socratic conversation (THE GOLD) - why research matters, mental models, priorities
 **See**: docs/decisions/002-graphiti-chunking-strategy.md
 
 ### Group ID Format: `helldiver_research_{session}_{type}`
@@ -150,8 +151,9 @@ helldiver/
 
 - **State Machine**: TASKING → RESEARCH → REFINEMENT → COMMIT → COMPLETE
 - **Workers**: Academic Research, Industry Intelligence, Tool Analyzer, Critical Analyst
-- **Episode Structure**: One episode per worker (4 per research session)
+- **Episode Structure**: 5 episodes per research (4 workers + 1 refinement context)
 - **Episode Size**: 1,400-2,600 tokens (optimal for Graphiti entity extraction)
+- **Refinement Flow**: Continuous conversation (tasking + post-research) → distill → commit → clear
 - **Group ID**: `helldiver_research_{session}_{type}` (underscores only!)
 - **Cost Optimization**: Batch API (50% savings) + Prompt Caching (90% savings)
 - **Graph**: Graphiti (temporal knowledge graph) + Neo4j + OpenAI (entity extraction)

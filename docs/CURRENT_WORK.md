@@ -3,7 +3,7 @@
 > **New to this project?** Read `CLAUDE.md` first, then come back here.
 
 **Last Updated**: 2025-01-19
-**Active Sessions**: 3 research sessions on building optimal graph architecture
+**Active Sessions**: Refinement episode architecture completed + graph architecture research
 
 ---
 
@@ -25,6 +25,24 @@
 ---
 
 ## 📋 What We Just Figured Out
+
+### Refinement Episodes Architecture (2025-01-19)
+- **Problem**: User's refinement conversation (the "gold" - why research matters, mental models, priorities) was not being committed to graph
+- **Root Cause**: Only 4 worker episodes were being committed per research; the Socratic questioning and post-research exploration was lost
+- **Solution**: Restructured commit flow to include refinement as 5th episode per research cycle
+- **Implementation**:
+  - Tasking conversation populates `refinement_log` (pre-research Socratic questioning)
+  - Post-research exploration adds to same `refinement_log` (continuous conversation)
+  - On commit: Distills using giga-prompt → saves to `refinement_distilled.txt` → commits as episode
+  - Clears `refinement_log` after each commit (fresh start for next cycle)
+- **Impact**:
+  - Episodes per research: 4 → 5 (workers + refinement)
+  - User context now in graph with highest weighting metadata
+  - Complete provenance: What was researched + Why it mattered
+  - Refinement stored in research subfolders (survives --refine mode)
+- **Additional Fix**: Added 5-minute timeout to batch API (was hanging indefinitely)
+- **Files Changed**: main.py (128 lines added)
+- **Documentation Updated**: ADR-002 (episode count), CLAUDE.md (episode structure), ARCHITECTURE_OVERVIEW.md (commit flow)
 
 ### Plugin-Based Documentation System (2025-01-19)
 - **Problem**: Manual documentation updates, context lost between sessions, copy/paste session summaries
