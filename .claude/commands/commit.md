@@ -60,18 +60,43 @@ Based on git diff and user's "why" answer, determine:
 | Open question answered | **docs/GRAPH_ARCHITECTURE.md** | Move from "Open Questions" to relevant section |
 | **Major architectural decision** | **docs/decisions/** | Create new ADR (see below) |
 
-### When to Create New ADR:
+### When to Create or Update ADR:
 
-Create `docs/decisions/00X-decision-name.md` if:
+**Check if ADR exists for this topic first:**
+```bash
+ls docs/decisions/ | grep -i "[topic_keyword]"
+```
+
+Examples:
+- If working on custom entities: `grep -i "entity"`
+- If working on group_id: `grep -i "group"`
+- If working on schema: `grep -i "schema"`
+
+**If ADR exists**: Update it (add new section or update existing decision)
+**If ADR doesn't exist**: Create new one
+
+---
+
+**Create NEW ADR if:**
 - ✅ Major architectural decision made (changes system design fundamentally)
 - ✅ Chose between multiple approaches (need to document alternatives)
 - ✅ Decision has long-term consequences (affects future development)
+- ✅ **AND** no existing ADR covers this topic
 
-**ADR Template:**
+**UPDATE existing ADR if:**
+- ✅ Decision evolves or changes
+- ✅ New alternatives discovered
+- ✅ Consequences clarified through usage
+- ✅ Status changes (Accepted → Superseded)
+
+---
+
+**ADR Template (New):**
 ```markdown
 # ADR [number]: [Title]
 
 **Status**: Accepted
+**Last Updated**: [Date]
 
 ## Context
 [What problem are we solving? What constraints exist?]
@@ -90,9 +115,35 @@ Create `docs/decisions/00X-decision-name.md` if:
 
 ## References
 [Links to related docs, commits, discussions]
+
+## Change Log
+- [Date]: Initial decision
 ```
 
-Find next ADR number: `ls docs/decisions/ | grep -oP '\d+' | sort -n | tail -1` then add 1.
+**ADR Update Template:**
+Add to existing ADR under appropriate section or create new section:
+
+```markdown
+## Change Log
+- [Date]: [What changed and why]
+  - Previous: [Old decision]
+  - New: [Updated decision]
+  - Reason: [Why it changed]
+  - See: [commit hash or doc reference]
+```
+
+Or update **Status** if superseded:
+```markdown
+**Status**: Superseded by ADR-[number]
+```
+
+---
+
+**Find next ADR number** (if creating new):
+```bash
+ls docs/decisions/ | grep -oP '\d+' | sort -n | tail -1
+```
+Then add 1.
 
 ## Step 5: Update docs/CURRENT_WORK.md
 
