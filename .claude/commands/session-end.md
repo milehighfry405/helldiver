@@ -6,8 +6,16 @@ description: Generate comprehensive session summary from conversation context an
 
 You are generating a comprehensive session summary that captures the FULL CONTEXT of this work session, including the conversation journey, not just code changes.
 
-**When to run this**: After 2-3 hours of work OR 5-10 commits, whichever comes first.
-**Why**: Keeps summaries manageable (1,000-1,500 lines). If session is 10 hours, run this 3-4 times.
+**When to run this**: After EVERY /commit (or every 1-2 commits if commits are small).
+
+**Why**: User's commits are meaty (2-3 hours of discussion, multiple attempts, design decisions).
+Context fades from your window after 2-3 commits. Capture it while it's fresh.
+
+**Typical flow**:
+1. Work on feature (2 hours of discussion)
+2. /commit (commit the code)
+3. /session-end (capture the journey while context is fresh)
+4. Repeat
 
 ## Critical: Use Full Conversation Context
 
@@ -40,15 +48,35 @@ Read these files:
 
 Note the time span of commits to estimate session duration.
 
-## Step 2: Find Next Session Number
+## Step 2: Determine Session Number and Topic Slug
 
-Run:
+**Find next number:**
 ```bash
-ls docs/archive/sessions/ 2>/dev/null | grep SESSION_SUMMARY | sed 's/SESSION_SUMMARY_//' | sed 's/.md//' | sort -n | tail -1
+ls docs/archive/sessions/ 2>/dev/null | grep SESSION_SUMMARY | sed 's/SESSION_SUMMARY_//' | sed 's/_.*//g' | sort -n | tail -1
 ```
 
 If no sessions exist yet, start with 5 (continuing from SESSION_SUMMARY_4).
-Otherwise, increment the number by 1.
+Otherwise, increment by 1.
+
+**Generate topic slug from last commit:**
+```bash
+git log -1 --pretty=format:"%s"
+```
+
+Extract key topic from commit message (e.g., "plugin system migration" from "refactor: Implement plugin-based documentation system").
+
+**Create slug:**
+- Lowercase
+- Replace spaces with underscores
+- Remove special characters
+- Max 4-5 words
+
+**Examples:**
+- "refactor: Implement plugin-based documentation system" → `plugin_system_migration`
+- "fix: Add timezone-aware datetime to reference_time" → `timezone_aware_datetime`
+- "feat: Implement custom entity types for Graphiti" → `custom_entity_types`
+
+**Final filename:** `SESSION_SUMMARY_[N]_[topic_slug].md`
 
 ## Step 3: Extract from Conversation Memory
 
@@ -101,12 +129,17 @@ Otherwise, increment the number by 1.
 
 ## Step 4: Generate Comprehensive Summary
 
-Create: `docs/archive/sessions/SESSION_SUMMARY_[N].md`
+Create: `docs/archive/sessions/SESSION_SUMMARY_[N]_[topic_slug].md`
 
-**Length constraint**: Target 1,000-1,500 lines maximum.
-- If session had 20+ commits, summarize groups of related commits together
+**Scope**: This summary covers the work leading up to the MOST RECENT commit.
+- Typically 1-3 commits worth of work
+- 2-4 hours of conversation
+- One main topic/feature/fix
+
+**Length constraint**: Target 800-1,200 lines.
+- Focus on THIS commit's journey (not entire session history)
 - Prioritize unique insights over comprehensive commit listing
-- Focus on: problems solved, decisions made, key learnings (not exhaustive commit log)
+- Capture: problems solved, decisions made, key learnings for THIS work
 
 Use Anthropic prompt engineering best practices:
 - XML tags for structure
@@ -117,7 +150,7 @@ Use Anthropic prompt engineering best practices:
 **Template:**
 
 ```markdown
-# SESSION_SUMMARY_[N].md
+# SESSION_SUMMARY_[N]_[topic_slug].md
 
 **Date**: [Today's date: YYYY-MM-DD]
 **Duration**: [Estimate from git log timestamps or conversation flow]
@@ -336,8 +369,15 @@ If this summary doesn't answer all of these, it's incomplete.
 
 Run:
 ```bash
-git add docs/archive/sessions/SESSION_SUMMARY_[N].md
-git commit -m "docs: Add SESSION_SUMMARY_[N] - [brief description from session]"
+git add docs/archive/sessions/SESSION_SUMMARY_[N]_[topic_slug].md
+git commit -m "docs: Add SESSION_SUMMARY_[N] - [topic from slug]"
+git push
+```
+
+Example:
+```bash
+git add docs/archive/sessions/SESSION_SUMMARY_5_plugin_system_migration.md
+git commit -m "docs: Add SESSION_SUMMARY_5 - plugin system migration"
 git push
 ```
 
@@ -345,7 +385,7 @@ git push
 
 Say:
 ```
-✓ Session summary saved: SESSION_SUMMARY_[N].md
+✓ Session summary saved: SESSION_SUMMARY_[N]_[topic_slug].md
 ✓ Committed and synced to remote
 
 Summary captured:

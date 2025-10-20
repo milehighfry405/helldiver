@@ -213,18 +213,21 @@ What it does:
 
 ### `/session-end` - Save Session Summary
 Use when:
-- After 2-3 hours of work
-- After 5-10 commits
-- Done for the day
-- Switching computers
-- Before long break
+- **After EVERY /commit** (captures context while fresh)
+- Or after 1-2 commits if commits are small
 
-**Run this multiple times in long sessions** (every 2-3 hours) to keep summaries manageable.
+**Why after every commit**: Your commits are meaty (2-3 hours of discussion, multiple attempts, design decisions). Context fades from Claude's window after 2-3 commits. Capture the journey while it's still fresh.
+
+**Typical flow**:
+1. Work on feature (2-3 hours of discussion)
+2. `/commit` (commit the code)
+3. `/session-end` (capture the journey immediately)
+4. Repeat
 
 What it does:
-- Extracts session context from conversation
-- Generates comprehensive summary (1,000-1,500 lines max)
-- Saves to docs/archive/sessions/
+- Extracts FULL conversation context from current window
+- Generates comprehensive summary focused on THIS commit (800-1,200 lines)
+- Saves as `SESSION_SUMMARY_[N]_[topic_slug].md` (searchable by topic)
 - Commits and pushes automatically
 
 ---
