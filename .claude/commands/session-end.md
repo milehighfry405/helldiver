@@ -6,6 +6,9 @@ description: Generate comprehensive session summary from conversation context an
 
 You are generating a comprehensive session summary that captures the FULL CONTEXT of this work session, including the conversation journey, not just code changes.
 
+**When to run this**: After 2-3 hours of work OR 5-10 commits, whichever comes first.
+**Why**: Keeps summaries manageable (1,000-1,500 lines). If session is 10 hours, run this 3-4 times.
+
 ## Critical: Use Full Conversation Context
 
 **This is NOT just a git log summary.**
@@ -100,10 +103,16 @@ Otherwise, increment the number by 1.
 
 Create: `docs/archive/sessions/SESSION_SUMMARY_[N].md`
 
+**Length constraint**: Target 1,000-1,500 lines maximum.
+- If session had 20+ commits, summarize groups of related commits together
+- Prioritize unique insights over comprehensive commit listing
+- Focus on: problems solved, decisions made, key learnings (not exhaustive commit log)
+
 Use Anthropic prompt engineering best practices:
 - XML tags for structure
 - Be explicit about sources
 - Prioritize conversation context over file context
+- Be concise but complete
 
 **Template:**
 

@@ -213,13 +213,17 @@ What it does:
 
 ### `/session-end` - Save Session Summary
 Use when:
+- After 2-3 hours of work
+- After 5-10 commits
 - Done for the day
 - Switching computers
 - Before long break
 
+**Run this multiple times in long sessions** (every 2-3 hours) to keep summaries manageable.
+
 What it does:
 - Extracts session context from conversation
-- Generates comprehensive summary
+- Generates comprehensive summary (1,000-1,500 lines max)
 - Saves to docs/archive/sessions/
 - Commits and pushes automatically
 
