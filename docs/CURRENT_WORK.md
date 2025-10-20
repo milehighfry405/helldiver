@@ -1,5 +1,7 @@
 # Current Work Tracker
 
+> **New to this project?** Read `CLAUDE.md` first, then come back here.
+
 **Last Updated**: 2025-01-19
 **Active Sessions**: 3 research sessions on building optimal graph architecture
 
@@ -7,16 +9,39 @@
 
 ## 🎯 Active Focus
 
-**Building the perfect knowledge graph architecture for the "brain"**
+**Building plugin-based documentation system + optimal graph architecture**
 
-This is foundational work - we're researching how to build the optimal graph that will:
-1. Store all Helldiver research findings
-2. Power Claude Skills execution layer
-3. Provide omega context across all future use cases
+**Documentation System** (COMPLETED THIS SESSION):
+- Plugin workflows for context management (/onboard, /commit, /session-end)
+- Zero-friction onboarding and documentation updates
+- Systematic knowledge capture across sessions
+
+**Graph Architecture** (ONGOING):
+- Researching optimal knowledge graph design for the "brain"
+- Will store all Helldiver research findings
+- Will power Claude Skills execution layer
+- Provide omega context across all future use cases
 
 ---
 
 ## 📋 What We Just Figured Out
+
+### Plugin-Based Documentation System (2025-01-19)
+- **Problem**: Manual documentation updates, context lost between sessions, copy/paste session summaries
+- **Solution**: Claude Code plugins for automated workflows
+- **Implemented**:
+  - `/onboard` - Loads context in <30 seconds (CLAUDE.md + CURRENT_WORK + git log + latest session)
+  - `/commit` - Asks "why?", updates appropriate docs automatically, writes rich commit messages
+  - `/session-end` - Extracts conversation context, generates comprehensive summary, commits automatically
+- **Impact**:
+  - Context loading: 3 minutes → <30 seconds
+  - Documentation updates: manual → automatic
+  - Session summaries: copy/paste → auto-committed
+  - Multi-computer workflow: seamless (git pull + /onboard)
+- **Files**:
+  - Created: CLAUDE.md, .claude/plugin.json, .claude/commands/[onboard|commit|session-end].md
+  - Archived: docs/AI_ONBOARDING.md, docs/COMMIT_CHECKLIST.md, docs/Claude Sessions/
+  - Updated: README.md (plugin workflows), CURRENT_WORK.md (this file)
 
 ### Group ID Strategy (Under Review)
 - **Issue Discovered**: Hierarchical group_ids (per-session) break cross-session querying via MCP
@@ -120,11 +145,15 @@ This is foundational work - we're researching how to build the optimal graph tha
 
 ## 🎓 Key Learnings This Session
 
-1. **Graphiti's group_id is optional** - Default behavior searches entire graph (supports omega context vision)
-2. **Enterprise use ≠ our use** - Zep uses per-user isolation; we want cross-session synthesis
-3. **Episode size matters** - 1,000-2,000 tokens optimal for entity extraction (our chunking is correct)
-4. **Timezone-aware datetimes are critical** - Naive datetimes → NULL valid_at → MCP can't find episodes
-5. **MCP compatibility requires planning** - Can't assume other AI agents will "just work" without correct metadata
+1. **Plugins > instructions for repetitive workflows** - Explicit triggers (/onboard, /commit) more reliable than hoping AI reads instructions
+2. **Session summaries capture journey, not just outcome** - Git log shows final state; summaries show the debugging odyssey
+3. **Every file needs explicit purpose** - No stale docs; each file actively updated or archived
+4. **"Why" question in /commit is gold** - User's explanation captures context git diff can't show
+5. **Graphiti's group_id is optional** - Default behavior searches entire graph (supports omega context vision)
+6. **Enterprise use ≠ our use** - Zep uses per-user isolation; we want cross-session synthesis
+7. **Episode size matters** - 1,000-2,000 tokens optimal for entity extraction (our chunking is correct)
+8. **Timezone-aware datetimes are critical** - Naive datetimes → NULL valid_at → MCP can't find episodes
+9. **MCP compatibility requires planning** - Can't assume other AI agents will "just work" without correct metadata
 
 ---
 

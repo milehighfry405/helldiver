@@ -6,29 +6,25 @@
 
 ## 🤖 For Claude Code: Start Here
 
-**When user says "read the README"**, do this:
+**New session? Type**: `/onboard`
 
-1. **Read this entire file** (you're doing that now ✓)
-2. **Read [docs/CURRENT_WORK.md](docs/CURRENT_WORK.md)** - **START HERE** - What we're working on RIGHT NOW
-3. **Read [docs/AI_ONBOARDING.md](docs/AI_ONBOARDING.md)** - Navigation guide and workflows
-4. **Read [docs/GRAPH_ARCHITECTURE.md](docs/GRAPH_ARCHITECTURE.md)** - Knowledge graph design decisions and strategy
-5. **Check [docs/Claude Sessions/](docs/Claude%20Sessions/)** - Read latest `SESSION_SUMMARY_*.md` for previous context
-6. **Read [docs/COMMIT_CHECKLIST.md](docs/COMMIT_CHECKLIST.md)** - Pre-commit checklist (follow before EVERY commit)
+This automatically loads:
+- CLAUDE.md (critical rules, design rationale)
+- docs/CURRENT_WORK.md (active work, next steps)
+- Recent git history
+- Latest session summary (if needed)
 
-**Then say**: "Context loaded. Current focus: [summary from CURRENT_WORK.md]. Ready to continue!"
-
-**CRITICAL RULES**:
-- **Before ANY git commit**: Re-read [docs/COMMIT_CHECKLIST.md](docs/COMMIT_CHECKLIST.md) and follow it
-- **When user says "commit"**: Automatically check [docs/COMMIT_CHECKLIST.md](docs/COMMIT_CHECKLIST.md), update docs, propose commit message
-- **Session summaries**: Remind user to save them in `docs/Claude Sessions/` if context limit approaching
+**Time**: <30 seconds
 
 ---
 
 ## 👤 For Humans: Quick Commands
 
-**New session?** Say: `"Read the README"` → Claude loads all context
+**New session?** Type: `/onboard` → Claude loads context in <30 seconds
 
-**Ready to commit?** Say: `"commit"` → Claude checks docs, updates as needed, proposes commit
+**Ready to commit?** Type: `/commit` → Claude updates docs, writes rich commit message, commits
+
+**Done for the day?** Type: `/session-end` → Claude saves comprehensive session summary
 
 ---
 
@@ -54,35 +50,49 @@ Helldiver is a multi-agent research system that:
 
 ```
 helldiver/
-├── main.py                     # Core orchestrator (ResearchSession, state machine)
-├── graphiti_client.py          # Graphiti/Neo4j interface
-├── helldiver_agent.py          # (Legacy - functionality merged into main.py)
-├── context/                    # Research sessions (gitignored except migration session)
-│   └── {Episode_Name}/        # Session folder = initial episode name
-│       ├── {Episode_Name}/    # Initial research (worker outputs)
-│       │   └── narrative.txt  # Synthesized findings for initial research
-│       ├── {Deep_Topic}/      # Deep research folders (clean names)
-│       │   └── narrative.txt  # Synthesized findings for deep research
-│       ├── session.json       # Session metadata (includes tasking context)
+├── README.md                    # Project overview, quick start
+├── CLAUDE.md                    # AI context file (read this first!)
+│
+├── .claude/                     # Plugin system
+│   ├── plugin.json              # Plugin manifest
+│   └── commands/
+│       ├── onboard.md           # /onboard command
+│       ├── commit.md            # /commit command
+│       └── session-end.md       # /session-end command
+│
+├── main.py                      # Core orchestrator (ResearchSession, state machine)
+├── graphiti_client.py           # Graphiti/Neo4j interface
+├── helldiver_agent.py           # (Legacy - functionality merged into main.py)
+│
+├── context/                     # Research sessions (gitignored except migration session)
+│   └── {Episode_Name}/         # Session folder = initial episode name
+│       ├── {Episode_Name}/     # Initial research (worker outputs)
+│       │   └── narrative.txt   # Synthesized findings for initial research
+│       ├── {Deep_Topic}/       # Deep research folders (clean names)
+│       │   └── narrative.txt   # Synthesized findings for deep research
+│       ├── session.json        # Session metadata (includes tasking context)
 │       └── refinement_*.txt/json  # Refinement logs (includes tasking + refinement)
+│
 ├── docs/
-│   ├── CURRENT_WORK.md        # **START HERE** - Active tasks, next steps, open questions
-│   ├── AI_ONBOARDING.md       # Primary entry point for AI assistants
-│   ├── GRAPH_ARCHITECTURE.md  # Knowledge graph design decisions (group_id, schema, custom entities)
-│   ├── ARCHITECTURE_OVERVIEW.md
-│   ├── COMMIT_CHECKLIST.md    # Pre-commit checklist for AI (auto-updates docs)
-│   ├── decisions/             # Architecture Decision Records (ADRs)
+│   ├── CURRENT_WORK.md          # **Active work tracker** (updated every commit)
+│   ├── GRAPH_ARCHITECTURE.md    # Graph design decisions (active)
+│   ├── ARCHITECTURE_OVERVIEW.md # Technical architecture (active)
+│   │
+│   ├── decisions/               # Architecture Decision Records (ADRs)
 │   │   ├── 001-episode-naming-strategy.md
 │   │   ├── 002-graphiti-chunking-strategy.md
 │   │   └── 003-episode-grouping-metadata.md
-│   └── Claude Sessions/       # Session continuation files (when Claude Code runs out of context)
-│       ├── README.md          # Explains session continuation system
-│       └── SESSION_SUMMARY_1-4.md
+│   │
+│   └── archive/                 # Historical documentation
+│       ├── AI_ONBOARDING.md     # Old onboarding (replaced by CLAUDE.md + /onboard)
+│       ├── COMMIT_CHECKLIST.md  # Old checklist (embedded in /commit plugin)
+│       └── sessions/            # Historical session summaries
+│           └── SESSION_SUMMARY_1-4.md
+│
 ├── scripts/
-│   └── kill_agents.py         # Utility to kill zombie processes
-├── .env                       # API keys (gitignored)
-├── requirements.txt
-└── README.md                  # This file
+│   └── kill_agents.py           # Utility to kill zombie processes
+├── .env                         # API keys (gitignored)
+└── requirements.txt
 
 ## Installation
 
@@ -279,22 +289,61 @@ ls context/{Session_Name}/{Episode_Name}/
 - Test retroactive commit on existing Arthur AI session
 - Build Clay table integration for ICP lead generation
 
-## For Claude Code Specifically
+## Plugin Workflows
 
-**Starting a new session?** Read [docs/AI_ONBOARDING.md](docs/AI_ONBOARDING.md) first - it explains:
-- Where to find information (navigation guide)
-- When to read what (based on user's request)
-- How session continuation works
-- Best practices for AI assistants
+This project uses Claude Code plugins for automated documentation management.
 
-**Quick checklist when continuing this project:**
-1. Read [docs/AI_ONBOARDING.md](docs/AI_ONBOARDING.md) for navigation
-2. Read [docs/GRAPH_ARCHITECTURE.md](docs/GRAPH_ARCHITECTURE.md) for knowledge graph design decisions
-3. Check [docs/Claude Sessions/](docs/Claude%20Sessions/) for previous session context
-4. Read [docs/ARCHITECTURE_OVERVIEW.md](docs/ARCHITECTURE_OVERVIEW.md) for high-level architecture
-5. Check [docs/decisions/](docs/decisions/) for rationale behind design choices
-6. Run code as-is first to understand flow
-7. Make changes incrementally, test after each change
+### `/onboard` - Load Context
+**Use when**: Starting new session, returning after break, switching computers
+
+**What it does**:
+- Reads CLAUDE.md, CURRENT_WORK.md
+- Checks git log and status
+- Loads latest session summary if needed
+- Outputs concise summary of where we left off
+
+### `/commit` - Update Docs and Commit
+**Use when**: Ready to commit changes
+
+**What it does**:
+- Asks "why did you make these changes?"
+- Determines which docs need updates based on what changed
+- Updates CURRENT_WORK.md (always)
+- Updates README, CLAUDE.md, ARCHITECTURE_OVERVIEW, GRAPH_ARCHITECTURE (if needed)
+- Creates ADR if major architectural decision
+- Writes rich commit message with full context
+- Commits and pushes
+
+### `/session-end` - Save Session Summary
+**Use when**: Done for the day, switching computers, before long break
+
+**What it does**:
+- Extracts context from full conversation (not just git log)
+- Generates comprehensive summary capturing:
+  - Problems solved (with debugging journey)
+  - Decisions made (with alternatives considered)
+  - User questions (confusion points)
+  - Key learnings (lessons from debugging)
+- Saves to docs/archive/sessions/
+- Commits and pushes automatically
+
+## For Claude Code: Quick Reference
+
+**Files to read** (in order):
+1. CLAUDE.md (critical rules, design rationale, file map)
+2. docs/CURRENT_WORK.md (active work, next steps, open questions)
+3. docs/GRAPH_ARCHITECTURE.md (if graph-related work)
+4. docs/ARCHITECTURE_OVERVIEW.md (if need technical architecture reference)
+5. docs/archive/sessions/SESSION_SUMMARY_*.md (latest, if need deep context)
+
+**Every file has a purpose**:
+- README.md → Project overview for humans and AI
+- CLAUDE.md → AI context file (fast reference)
+- CURRENT_WORK.md → Active work tracker (updated every commit)
+- GRAPH_ARCHITECTURE.md → Graph design decisions (active development)
+- ARCHITECTURE_OVERVIEW.md → Technical architecture (reference)
+- decisions/ → ADRs (permanent record of major decisions)
+- archive/ → Historical docs (not actively updated)
 
 ## Contact
 

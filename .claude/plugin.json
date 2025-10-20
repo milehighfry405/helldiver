@@ -1,0 +1,9 @@
+{
+  "name": "helldiver-workflow",
+  "version": "1.0.0",
+  "description": "Automated documentation and context management for Helldiver research project",
+  "author": {
+    "name": "Helldiver Project"
+  },
+  "commands": ["./commands/"]
+}

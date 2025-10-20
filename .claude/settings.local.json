@@ -3,7 +3,8 @@
     "allow": [
       "Bash(tree:*)",
       "Read(//c/Users/laxdu/Documents/Projects/**)",
-      "Read(//c/Users/laxdu/Documents/**)"
+      "Read(//c/Users/laxdu/Documents/**)",
+      "Bash(git add:*)"
     ],
     "deny": [],
     "ask": []
