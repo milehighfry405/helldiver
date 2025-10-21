@@ -120,10 +120,17 @@ helldiver/
 │       ├── commit.md    # /commit - Update docs, commit changes
 │       └── session-end.md # /session-end - Save session summary
 │
-├── main.py              # Core orchestrator (~1,813 lines)
-│                        # Key: ResearchSession class, commit_research_episode()
-├── graphiti_client.py   # Graph interface (~173 lines)
-│                        # Key: GraphitiClient.add_research_episode()
+├── main.py              # Entry point (~440 lines, refactored 2025-01-20)
+│                        # Key: tasking_conversation(), refinement_conversation()
+├── core/
+│   ├── session.py           # Session state management
+│   └── research_cycle.py    # Unified research execution
+├── workers/
+│   └── research.py          # Batch API for 3 workers + critical analyst
+├── graph/
+│   └── client.py            # Graphiti client (commits 5 episodes per research)
+├── utils/
+│   └── files.py             # File I/O and conversation distillation
 │
 ├── docs/
 │   ├── CURRENT_WORK.md          # **START HERE** - Active work tracker
@@ -136,6 +143,11 @@ helldiver/
 │   │   └── 003-episode-grouping-metadata.md
 │   │
 │   └── archive/         # Historical documentation
+│       ├── refactoring-2025-01-20/  # **OLD CODEBASE** (pre-refactor reference)
+│       │   ├── README.md            # What each archived file was and why
+│       │   ├── main_old.py          # Old 2,228-line monolithic version
+│       │   ├── graphiti_client.py   # Old graph client (now graph/client.py)
+│       │   └── helldiver_agent.py   # Very old version (pre-main.py)
 │       ├── AI_ONBOARDING.md     # Old onboarding (replaced by CLAUDE.md)
 │       ├── COMMIT_CHECKLIST.md  # Old checklist (embedded in /commit plugin)
 │       └── sessions/    # Historical session summaries
@@ -143,6 +155,8 @@ helldiver/
 └── context/             # Research sessions (gitignored except migration)
     └── {Session_Name}/  # Episode folders with worker outputs
 ```
+
+**IMPORTANT**: If you need to understand how something worked before the 2025-01-20 refactoring, check `docs/archive/refactoring-2025-01-20/` - it contains the complete old codebase with a README explaining what each file was.
 
 ---
 
@@ -248,11 +262,11 @@ What it does:
 
 ## Last Session Recap
 
-**Date**: 2025-01-19
-**What we did**: Designed and built plugin-based documentation system
-**What we decided**: Use plugins (not Skills) for explicit workflow triggers
-**Where we left off**: Building the plugin system (.claude/ directory)
-**Next session should**: Test /onboard, /commit, /session-end workflows
+**Date**: 2025-01-20
+**What we did**: Refactored 2,228-line main.py into clean modular architecture (440 lines + helpers)
+**What we fixed**: Episode naming, conversation history capture, subfolder names, batch API preservation
+**Where we left off**: All code migrated, old files archived, ready for production
+**Next session should**: Use refactored code for research, verify all 5 episodes commit correctly
 
 ---
 

@@ -108,6 +108,34 @@ pip install -r requirements.txt
 cp .env.example .env  # Then add your API keys
 ```
 
+### Neo4j Setup (Required for Graph Storage)
+
+1. **Install Neo4j Desktop** or use Docker:
+   ```bash
+   docker run -p 7474:7474 -p 7687:7687 -e NEO4J_AUTH=neo4j/password neo4j:latest
+   ```
+
+2. **Create required fulltext indexes**:
+   - Open Neo4j Browser: http://localhost:7474
+   - Run the setup script:
+   ```bash
+   # In Neo4j Browser, paste and run:
+   CREATE FULLTEXT INDEX node_name_and_summary IF NOT EXISTS
+   FOR (n:Entity)
+   ON EACH [n.name, n.summary];
+
+   CREATE FULLTEXT INDEX edge_name_and_fact IF NOT EXISTS
+   FOR ()-[r:RELATES_TO]-()
+   ON EACH [r.name, r.fact];
+   ```
+   - Or run: `cat setup_neo4j.cypher | cypher-shell -u neo4j -p password`
+
+3. **Verify indexes created**:
+   ```cypher
+   SHOW INDEXES;
+   ```
+   You should see both `node_name_and_summary` and `edge_name_and_fact` in the list.
+
 ### Required API Keys (.env)
 
 ```
@@ -115,7 +143,7 @@ ANTHROPIC_API_KEY=your_key_here
 NEO4J_URI=bolt://127.0.0.1:7687
 NEO4J_USER=neo4j
 NEO4J_PASSWORD=password
-OPENAI_API_KEY=your_openai_key  # For Graphiti
+OPENAI_API_KEY=your_openai_key  # For Graphiti entity extraction
 MODEL_NAME=gpt-4o-mini          # For Graphiti
 ```
 
@@ -140,7 +168,15 @@ Flow:
 python main.py --refine "context/Episode_Name"
 ```
 
-### Test Graph Integration
+### Test Mode (Fast 30-second research)
+
+```bash
+python main.py --test
+```
+
+Uses Haiku with 500 tokens, no web search. Perfect for testing workflow without waiting 3-5 minutes.
+
+### Mock Mode (Test without Neo4j)
 
 ```bash
 # Mock mode (no graphiti_core installed)

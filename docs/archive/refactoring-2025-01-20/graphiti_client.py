@@ -32,21 +32,71 @@ class GraphitiClient:
 
     def __init__(self):
         """Initialize Graphiti connection"""
+        self._indexes_built = False  # Track if we've built indexes yet
+        self._uri = os.environ.get("NEO4J_URI", "bolt://127.0.0.1:7687")
+        self._user = os.environ.get("NEO4J_USER", "neo4j")
+        self._password = os.environ.get("NEO4J_PASSWORD", "password")
+
         if GRAPHITI_AVAILABLE and not FORCE_MOCK_MODE:
             try:
                 self.graphiti = Graphiti(
-                    uri=os.environ.get("NEO4J_URI", "bolt://127.0.0.1:7687"),
-                    user=os.environ.get("NEO4J_USER", "neo4j"),
-                    password=os.environ.get("NEO4J_PASSWORD", "password")
+                    uri=self._uri,
+                    user=self._user,
+                    password=self._password
                 )
                 print("SUCCESS: Graphiti client connected to Neo4j")
+                print("INFO: Indexes will be built on first graph write")
             except Exception as e:
                 print(f"WARNING: Failed to connect to Neo4j: {e}")
-                print("WARNING: Falling back to mock mode")
+                print(f"WARNING: Falling back to mock mode")
                 self.graphiti = None
         else:
             self.graphiti = None
             print("WARNING: Graphiti client initialized in mock mode")
+
+    def _ensure_connection(self):
+        """Ensure Neo4j connection is alive, recreate if needed"""
+        if not self.graphiti:
+            return False
+
+        try:
+            # Check if driver exists
+            if not hasattr(self.graphiti, 'driver') or self.graphiti.driver is None:
+                print("INFO: Neo4j driver missing, reconnecting...")
+                self.graphiti = Graphiti(
+                    uri=self._uri,
+                    user=self._user,
+                    password=self._password
+                )
+                self._indexes_built = False
+                print("SUCCESS: Reconnected to Neo4j")
+                return True
+
+            # Test if connection is actually alive by verifying connectivity
+            try:
+                self.graphiti.driver.verify_connectivity()
+                return True
+            except Exception:
+                # Connection dead, recreate
+                print("INFO: Neo4j connection lost, reconnecting...")
+                # Close old connection first
+                try:
+                    self.graphiti.close()
+                except:
+                    pass
+                # Create new connection
+                self.graphiti = Graphiti(
+                    uri=self._uri,
+                    user=self._user,
+                    password=self._password
+                )
+                self._indexes_built = False
+                print("SUCCESS: Reconnected to Neo4j")
+                return True
+
+        except Exception as e:
+            print(f"WARNING: Failed to verify/reconnect to Neo4j: {e}")
+            return False
 
     async def commit_episode(
         self,
@@ -85,6 +135,21 @@ class GraphitiClient:
             if self.graphiti:
                 try:
                     from datetime import datetime, timezone
+
+                    # Ensure connection is alive before writing
+                    if not self._ensure_connection():
+                        return {
+                            "status": "error",
+                            "error": "Neo4j connection unavailable",
+                            "message": "Could not establish connection to Neo4j"
+                        }
+
+                    # Build indexes on first write (idempotent - safe to call multiple times)
+                    if not self._indexes_built:
+                        print("INFO: Building Neo4j indexes and constraints...")
+                        await self.graphiti.build_indices_and_constraints()
+                        self._indexes_built = True
+                        print("SUCCESS: Neo4j indexes and constraints verified")
 
                     await self.graphiti.add_episode(
                         name=episode_name,

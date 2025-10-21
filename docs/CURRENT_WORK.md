@@ -2,29 +2,56 @@
 
 > **New to this project?** Read `CLAUDE.md` first, then come back here.
 
-**Last Updated**: 2025-01-19
-**Active Sessions**: 3 research sessions on building optimal graph architecture
+**Last Updated**: 2025-01-20
+**Active Sessions**: Codebase refactored and ready for production use
 
 ---
 
 ## 🎯 Active Focus
 
-**Building plugin-based documentation system + optimal graph architecture**
+**Codebase refactoring complete - ready for production use**
 
-**Documentation System** (COMPLETED THIS SESSION):
-- Plugin workflows for context management (/onboard, /commit, /session-end)
-- Zero-friction onboarding and documentation updates
-- Systematic knowledge capture across sessions
-
-**Graph Architecture** (ONGOING):
-- Researching optimal knowledge graph design for the "brain"
-- Will store all Helldiver research findings
-- Will power Claude Skills execution layer
-- Provide omega context across all future use cases
+**Status**: All working code migrated to clean modular architecture
+- 56% line reduction (2,228 → 440 lines in main.py)
+- Unified research cycle (one function for all research types)
+- Fixed all conversation history capture bugs
+- Episode name generation with LLM cleanup
+- Batch API with progress polling preserved
 
 ---
 
 ## 📋 What We Just Figured Out
+
+### Codebase Refactoring (2025-01-20)
+- **Problem**: Bloated 2,228-line main.py with duplicate code for initial vs deep research, bugs from code drift
+- **Solution**: Systematic migration to modular architecture with unified research cycle
+- **Results**:
+  - 56% line reduction (2,228 → 440 lines in main.py)
+  - Unified research cycle works for all research types (initial, deep, future)
+  - Fixed conversation history capture bugs (tasking and refinement conversations now complete)
+  - Episode name generation uses LLM to clean conversational queries
+  - Batch API with 30-second progress polling preserved
+  - All prompts identical to old code (no behavior changes)
+- **Architecture**:
+  - `core/session.py` - Session state management
+  - `core/research_cycle.py` - Unified research execution
+  - `workers/research.py` - Batch API for 3 workers + critical analyst
+  - `graph/client.py` - Graph commits with connection handling
+  - `utils/files.py` - File I/O and conversation distillation
+- **Fixes Applied**:
+  - Subfolder names use clean episode names (not raw queries)
+  - Tasking conversation captures final user message before "go"
+  - Refinement conversation captures deep research request (excludes confirmation)
+  - Initial research uses episode_name for graph group_id
+- **Files Archived**: `docs/archive/refactoring-2025-01-20/` contains complete old codebase:
+  - `main_old.py` - Original 2,228-line monolithic version
+  - `graphiti_client.py` - Old graph client (now graph/client.py)
+  - `helldiver_agent.py` - Very old version (pre-main.py era)
+  - `setup_neo4j.cypher` - Manual index setup (now automatic)
+  - `test_refactor.py` - Validation test (no longer needed)
+  - `README.md` - Explains what each file was and why archived
+  - **Use case**: If questions arise about how something worked before refactoring, search these archived files
+- **Impact**: Codebase is maintainable, bugs fixed, ready for production use
 
 ### Plugin-Based Documentation System (2025-01-19)
 - **Problem**: Manual documentation updates, context lost between sessions, copy/paste session summaries

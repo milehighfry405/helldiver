@@ -1,10 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "Bash(tree:*)",
-      "Read(//c/Users/laxdu/Documents/Projects/**)",
-      "Read(//c/Users/laxdu/Documents/**)",
-      "Bash(git add:*)"
+      "Bash(python -c \"from graphiti_core import Graphiti; g = Graphiti(''bolt://127.0.0.1:7687'', ''neo4j'', ''password''); print(hasattr(g, ''driver'')); print(hasattr(g, ''_driver'')); print([a for a in dir(g) if not a.startswith(''__'')][:20])\")",
+      "Bash(python test_refactor.py)",
+      "Bash(git push)",
+      "Bash(git pull --rebase)"
     ],
     "deny": [],
     "ask": []
