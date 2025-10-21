@@ -155,3 +155,13 @@ See ADR-003 for how episodes from the same session are linked via metadata.
 
 - ADR-001: Episode Naming Strategy (how episodes are named)
 - ADR-003: Episode Grouping Metadata (how episodes link together)
+
+## Change Log
+
+- 2025-01-19: **Refinement episodes now committed to graph**
+  - **Previous**: Refinement context saved to files but NOT committed as episodes
+  - **New**: Refinement committed as 5th episode per research cycle (4 workers + 1 refinement)
+  - **Reason**: User's conversation context (the "gold" - why research matters, mental models, priorities) was being lost. Only worker findings were in graph, missing the interpretive lens.
+  - **Impact**: Episodes per research cycle: 4 → 5. Refinement distilled using existing giga-prompt, saved to `research_dir/refinement_distilled.txt`, committed with `weighting: user_context > worker_findings` metadata.
+  - **Architecture**: Refinement is continuous (pre-research tasking + post-research exploration), distilled and committed with each research, then cleared for next cycle.
+  - **See**: Commit implementing refinement episode architecture
