@@ -128,11 +128,9 @@ async def run_research_cycle(
     # ========================================
     # Step 4: Commit to knowledge graph
     # ========================================
-    # Group ID format: helldiver_research_{session}_{type}
-    # Type: "initial" for first research, "deep" for subsequent
-    research_type = "initial" if session.episode_count == 0 else "deep"
-    safe_session_name = session.original_query.replace(" ", "_").replace("/", "_")
-    group_id = f"helldiver_research_{safe_session_name}_{research_type}"
+    # Group ID: Single global value for all research
+    # Enables cross-session entity synthesis and "omega context" search
+    group_id = "helldiver_research"
 
     print(f"[GRAPH] Committing to knowledge graph (group_id: {group_id})...")
     result = await graph_client.commit_research_episode(

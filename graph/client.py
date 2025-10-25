@@ -30,6 +30,9 @@ except ImportError:
     GRAPHITI_AVAILABLE = False
     Graphiti = None
 
+# Import entity types for custom entity extraction
+from .entity_types import RESEARCH_ENTITY_TYPES
+
 
 class GraphClient:
     """
@@ -106,12 +109,9 @@ class GraphClient:
         Side effect: Resets _indexes_built flag so indexes get rebuilt.
         """
         try:
-            # Close old connection
-            if self.graphiti:
-                try:
-                    self.graphiti.close()
-                except:
-                    pass
+            # Close old connection (if exists)
+            # Note: graphiti.close() is async, but we're recreating anyway
+            # so we just let the old connection get garbage collected
 
             # Create new connection
             self.graphiti = Graphiti(
@@ -197,6 +197,7 @@ class GraphClient:
                 await self.graphiti.add_episode(
                     name=ep_name,
                     episode_body=content,
+                    entity_types=RESEARCH_ENTITY_TYPES,
                     source_description=f"Helldiver Research | {session_name} | {worker_label}",
                     reference_time=timestamp,
                     group_id=group_id
@@ -217,6 +218,7 @@ class GraphClient:
                 await self.graphiti.add_episode(
                     name=ep_name,
                     episode_body=critical_analysis,
+                    entity_types=RESEARCH_ENTITY_TYPES,
                     source_description=f"Helldiver Research | {session_name} | Critical Analysis",
                     reference_time=timestamp,
                     group_id=group_id
@@ -248,6 +250,7 @@ research findings when interpreting results."""
                 await self.graphiti.add_episode(
                     name=ep_name,
                     episode_body=context_body,
+                    entity_types=RESEARCH_ENTITY_TYPES,
                     source_description=f"Helldiver Research | {session_name} | Refinement Context",
                     reference_time=timestamp,
                     group_id=group_id

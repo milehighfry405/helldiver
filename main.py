@@ -36,6 +36,7 @@ from utils.files import distill_conversation
 parser = argparse.ArgumentParser(description='Helldiver Research Agent')
 parser.add_argument('--test', action='store_true', help='Test mode: fast research with Haiku')
 parser.add_argument('--refine', type=str, help='Resume existing session from directory')
+parser.add_argument('--commit-to-graph', type=str, help='Commit existing research files to graph (pass session directory)')
 args = parser.parse_args()
 
 # Set test mode globally
@@ -472,6 +473,114 @@ Help the user understand the findings, explore specific aspects, and identify wh
         session.save()
 
 
+async def commit_existing_research_to_graph(session_dir: str):
+    """
+    Commit existing research files to the knowledge graph.
+
+    Use case: Research was executed but graph commit failed or was skipped.
+    This reads the saved worker files and commits them retroactively.
+
+    Args:
+        session_dir: Path to session directory (e.g., "context/Session_Name")
+    """
+    print_header("Commit Existing Research to Graph")
+
+    # Verify session directory exists
+    if not os.path.exists(session_dir):
+        print(f"[ERROR] Session directory not found: {session_dir}")
+        return
+
+    # Load session
+    try:
+        session = ResearchSession.load(session_dir)
+        print(f"[LOADED] Session: {session.original_query}")
+        print(f"[EPISODES] {session.episode_count} research episode(s) found")
+    except FileNotFoundError:
+        print(f"[ERROR] No session.json found in {session_dir}")
+        return
+
+    # Find all research subdirectories (they contain the worker files)
+    research_dirs = [d for d in os.listdir(session_dir)
+                     if os.path.isdir(os.path.join(session_dir, d))]
+
+    if not research_dirs:
+        print(f"[ERROR] No research subdirectories found in {session_dir}")
+        return
+
+    print(f"\n[FOUND] {len(research_dirs)} research episode(s):")
+    for i, rd in enumerate(research_dirs, 1):
+        print(f"  {i}. {rd}")
+
+    # Confirm with user
+    confirm = input("\nCommit all episodes to graph? (yes/no): ").strip().lower()
+    if confirm not in ['yes', 'y']:
+        print("[CANCELLED] Graph commit cancelled.")
+        return
+
+    # Initialize graph client
+    graph_client = GraphClient()
+
+    # Process each research directory
+    for research_dirname in research_dirs:
+        research_dir = os.path.join(session_dir, research_dirname)
+
+        print(f"\n[PROCESSING] {research_dirname}")
+
+        # Load worker files
+        worker_results = {}
+        for worker_name in ['academic_researcher', 'industry_intelligence', 'tool_analyzer']:
+            worker_file = os.path.join(research_dir, f"{worker_name}.txt")
+            if os.path.exists(worker_file):
+                with open(worker_file, 'r', encoding='utf-8') as f:
+                    # Skip metadata header (first 4 lines)
+                    lines = f.readlines()
+                    content = ''.join(lines[4:]) if len(lines) > 4 else ''.join(lines)
+                    worker_results[worker_name] = content
+
+        # Load critical analysis
+        critical_file = os.path.join(research_dir, "critical_analysis.txt")
+        critical_analysis = ""
+        if os.path.exists(critical_file):
+            with open(critical_file, 'r', encoding='utf-8') as f:
+                lines = f.readlines()
+                critical_analysis = ''.join(lines[2:]) if len(lines) > 2 else ''.join(lines)
+
+        # Load refinement context (if exists)
+        refinement_file = os.path.join(research_dir, "refinement_context_distilled.txt")
+        refinement_distilled = ""
+        if os.path.exists(refinement_file):
+            with open(refinement_file, 'r', encoding='utf-8') as f:
+                refinement_distilled = f.read()
+
+        # Verify we have the minimum required files
+        if not worker_results or not critical_analysis:
+            print(f"  [SKIP] Missing worker files in {research_dirname}")
+            continue
+
+        # Commit to graph (same logic as run_research_cycle)
+        group_id = "helldiver_research"
+        episode_name = research_dirname  # Use directory name as episode name
+
+        print(f"  [GRAPH] Committing to knowledge graph (group_id: {group_id})...")
+        result = await graph_client.commit_research_episode(
+            session_name=session.original_query,
+            episode_name=episode_name,
+            group_id=group_id,
+            worker_results=worker_results,
+            critical_analysis=critical_analysis,
+            refinement_distilled=refinement_distilled
+        )
+
+        if result["status"] == "success":
+            print(f"  [SUCCESS] {result['episode_count']} episodes committed")
+        else:
+            print(f"  [ERROR] Graph commit had errors: {result.get('errors', [])}")
+
+    # Cleanup
+    graph_client.close()
+    print(f"\n[COMPLETE] Graph commit complete for {session_dir}")
+
+
 async def main():
     """Main entry point."""
     print_header("Welcome to Helldiver Research Agent")
@@ -569,4 +678,8 @@ async def main():
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    # Handle --commit-to-graph flag
+    if args.commit_to_graph:
+        asyncio.run(commit_existing_research_to_graph(args.commit_to_graph))
+    else:
+        asyncio.run(main())

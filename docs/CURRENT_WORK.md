@@ -2,25 +2,50 @@
 
 > **New to this project?** Read `CLAUDE.md` first, then come back here.
 
-**Last Updated**: 2025-01-20
-**Active Sessions**: Codebase refactored and ready for production use
+**Last Updated**: 2025-01-24
+**Active Sessions**: Schema redesign needed after Graphiti architecture investigation
 
 ---
 
 ## 🎯 Active Focus
 
-**Codebase refactoring complete - ready for production use**
+**Paused: Redesigning entity schema to align with Graphiti's NER architecture**
 
-**Status**: All working code migrated to clean modular architecture
-- 56% line reduction (2,228 → 440 lines in main.py)
-- Unified research cycle (one function for all research types)
-- Fixed all conversation history capture bugs
-- Episode name generation with LLM cleanup
-- Batch API with progress polling preserved
+**What happened**: Attempted to implement custom entity types (ResearchFinding, StrategicIntent, ExecutionOutcome) but discovered Graphiti is designed for Named Entity Recognition (concrete nouns mentioned in text), not conceptual entity extraction (structure of content itself).
+
+**Current blocker**: Meta-entities fail to extract properly - they create generic `Entity` nodes instead of typed nodes with attributes.
+
+**Next step**: Redesign schema to use only concrete entity types that represent things mentioned in text, not abstract concepts.
 
 ---
 
 ## 📋 What We Just Figured Out
+
+### Graphiti Extraction Architecture Investigation (2025-01-24)
+- **Problem**: Custom entity types (ResearchFinding, StrategicIntent, ExecutionOutcome) don't extract - they create generic Entity nodes
+- **Root Cause Discovered**: Graphiti uses Named Entity Recognition (NER) designed for concrete nouns mentioned in text ("Arthur.ai", "Clay"), not conceptual entities that ARE the text structure itself
+- **Deep Investigation**: 8-point analysis of Graphiti's extraction pipeline revealed:
+  - Two-stage extraction: (1) Extract entity names, (2) Extract attributes for named entities
+  - ResearchFinding has no "name" mentioned in text - it's the paragraph structure itself
+  - Graphiti makes 17+ LLM calls per episode (1 extraction + 1 reflexion + 15 attribute calls)
+  - `custom_prompt` parameter exists but is NOT accessible via `add_episode()` - only used internally for reflexion retries
+  - Entity type filtering IS supported and recommended (saves 65% token overhead)
+- **Fixes Applied This Session**:
+  - ✅ Fixed protected field conflicts: `name` → `company_name`, `tool_name`, `methodology_name`
+  - ✅ Changed group_id to single global `"helldiver_research"` (enables cross-session synthesis)
+  - ✅ Added `entity_types` parameter to all `add_episode()` calls
+  - ✅ Enhanced worker prompts with execution formatting hints (5th guideline for workflow/config/prompt extraction)
+  - ✅ Added `--commit-to-graph` CLI flag for retroactive commits when graph commits fail
+  - ✅ Fixed async close() warning in graph client
+- **Solutions Explored**:
+  1. Fork Graphiti and modify extraction prompts (complex, high risk - deduplication issues)
+  2. Hybrid JSON approach (append extracted findings as JSON to episode body)
+  3. Dual storage (Graphiti for concrete entities, separate system for findings)
+  4. Custom extractor hooks (not supported by Graphiti)
+- **Decision**: Pause implementation, redesign schema to work WITH Graphiti's NER paradigm (use only concrete entity types)
+- **Impact**: Need to rethink how we capture research intelligence - can't use meta-entities as nodes
+- **Files Created**: `graph/entity_types.py` (ready but won't work as designed)
+- **Files Modified**: `graph/client.py`, `core/research_cycle.py`, `workers/research.py`, `main.py`
 
 ### Codebase Refactoring (2025-01-20)
 - **Problem**: Bloated 2,228-line main.py with duplicate code for initial vs deep research, bugs from code drift
@@ -181,6 +206,11 @@
 7. **Episode size matters** - 1,000-2,000 tokens optimal for entity extraction (our chunking is correct)
 8. **Timezone-aware datetimes are critical** - Naive datetimes → NULL valid_at → MCP can't find episodes
 9. **MCP compatibility requires planning** - Can't assume other AI agents will "just work" without correct metadata
+10. **Graphiti is NER, not conceptual extraction** - Designed for concrete nouns ("Arthur.ai"), not abstract concepts (ResearchFinding)
+11. **Two-stage extraction has implications** - Entity names extracted first, attributes second - conceptual entities have no "name" to extract
+12. **Protected fields exist** - Graphiti reserves `name`, `uuid`, `group_id`, etc. - use `company_name`, `tool_name` instead
+13. **Entity type filtering reduces overhead** - Passing only relevant types per episode saves 65% of entity type token overhead
+14. **Test assumptions about tools** - We assumed Graphiti could extract any entity type; investigation revealed NER-specific design
 
 ---
 

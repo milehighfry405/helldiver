@@ -4,7 +4,7 @@
   "query": "Best practices for schema design in knowledge graphs, specifically for Graphiti custom entities",
   "original_query": "Best practices for schema design in knowledge graphs, specifically for Graphiti custom entities",
   "episode_name": "Custom entities for Graphiti knowledge graphs",
-  "deep_research_count": 1,
-  "initial_episode_id": "Custom entities for Graphiti knowledge graphs (4 worker episodes)",
-  "deep_episode_ids": []
+  "episode_count": 1,
+  "tasking_context": {},
+  "pending_refinement": []
 }
