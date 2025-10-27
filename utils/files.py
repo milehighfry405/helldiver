@@ -15,6 +15,7 @@ import os
 from typing import Dict, List, Optional
 from anthropic import Anthropic
 from dotenv import load_dotenv
+from workers.prompts import REFINEMENT_DISTILLATION_PROMPT
 
 # Load environment variables from .env file
 load_dotenv()
@@ -179,53 +180,15 @@ def distill_conversation(conversation: List[Dict]) -> str:
         for turn in conversation
     ])
 
-    distillation_prompt = f"""<task>
-Extract the essential signal from a conversational refinement session and prepare it for knowledge graph ingestion.
+    # Use elite optimized distillation prompt (XML tags, examples, clear extraction rules)
+    distillation_prompt = REFINEMENT_DISTILLATION_PROMPT.format(
+        conversation_text=conversation_text
+    )
 
-This output will be written to a knowledge graph (Graphiti/Neo4j) that:
-- Extracts entities from sentences (people, companies, concepts, tools)
-- Identifies relationships between entities (is, has, requires, enables, connects to)
-- Links this context to research findings to form a coherent knowledge structure
-
-Your goal: Create clear, entity-rich sentences that enable strong graph connections.
-</task>
-
-<instructions>
-Analyze the full conversation arc and extract:
-
-1. **Mental Models** - How the user frames the problem
-2. **Reframings** - When/how the user corrected direction
-3. **Constraints** - Explicit boundaries or requirements
-4. **Priorities** - What matters most (relative importance)
-5. **Synthesis Instructions** - How to interpret the research findings
-
-Think step-by-step:
-- Read the entire conversation to understand the full context
-- Identify key moments where the user clarified their thinking
-- Note when the user said "actually no" or redirected
-- Extract explicit constraints or requirements
-- Identify stated priorities or preferences
-- Capture synthesis instructions about how to weight findings
-
-CRITICAL for knowledge graph optimization:
-- Use explicit entity names (e.g., "Arthur AI" not "they", "Clay enrichment system" not "it")
-- Write complete sentences with clear subject-verb-object structure
-- Use relational language (is, has, requires, connects to, enables, influences)
-- Connect the user's mental models to research concepts explicitly
-- Be specific about tools, companies, methodologies, frameworks mentioned
-- Avoid vague references - always name the thing
-
-Format: Write 3-8 concise paragraphs that capture the essential context.
-</instructions>
-
-<conversation>
-{conversation_text}
-</conversation>"""
-
-    # Use Sonnet 4.5 for distillation (fast, cheap, good at extraction)
+    # Use Sonnet 4.5 for distillation (fast, cheap, excellent at structured extraction)
     response = anthropic_client.messages.create(
         model="claude-sonnet-4-5-20250929",
-        max_tokens=2000,
+        max_tokens=3000,  # Increased for detailed extraction (was 2000)
         temperature=0.3,  # Lower temp for more factual extraction
         messages=[{
             "role": "user",

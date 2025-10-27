@@ -1,7 +1,11 @@
 """
 Research workers using Anthropic Batch API.
 
-COPIED DIRECTLY FROM OLD CODE - uses batch API for:
+TWO-STAGE ARCHITECTURE:
+Stage 1: Research LLMs (unrestricted deep thinking, natural prose)
+Stage 2: Structuring LLM (transform to graph-optimized format)
+
+Uses batch API for:
 - 50% cost savings
 - Progress polling every 30s
 - Optimal performance per Anthropic docs
@@ -13,6 +17,13 @@ from datetime import datetime
 from typing import Dict, Tuple
 from anthropic import Anthropic
 from dotenv import load_dotenv
+from workers.prompts import (
+    ACADEMIC_RESEARCHER_PROMPT,
+    INDUSTRY_ANALYST_PROMPT,
+    TOOL_ANALYZER_PROMPT,
+    STRUCTURING_PROMPT_TEMPLATE,
+    CRITICAL_ANALYST_PROMPT,
+)
 
 # Load environment variables
 load_dotenv()
@@ -96,7 +107,15 @@ def execute_research(query: str, tasking_summary: str, research_dir: str) -> Tup
 
 
 def create_worker_batch(research_query: str, tasking_context: str):
-    """Create batch jobs for 3 specialist workers - COPIED FROM OLD CODE"""
+    """
+    Create batch jobs for 3 specialist workers.
+
+    Uses optimized prompts built with Anthropic best practices (2025):
+    - XML tags for structure
+    - Role-based prompting
+    - Few-shot examples
+    - Clear task decomposition
+    """
 
     # Test mode: minimal research for fast testing
     if TEST_MODE:
@@ -108,68 +127,22 @@ def create_worker_batch(research_query: str, tasking_context: str):
         max_tokens = 500
         tools = []  # No web search in test mode
     else:
-        academic_prompt = """You are an academic researcher specializing in deep technical literature.
-Search for papers, technical documentation, and theoretical frameworks.
-Use web_search tool extensively. Return dense, signal-rich findings with citations.
+        # Use elite optimized prompts from prompts.py
+        academic_prompt = ACADEMIC_RESEARCHER_PROMPT
+        industry_prompt = INDUSTRY_ANALYST_PROMPT
+        tool_prompt = TOOL_ANALYZER_PROMPT
 
-When presenting research findings:
-1. Use clear headers to separate distinct findings (## for major topics, ### for sub-findings)
-2. Signal important findings explicitly (start key insights with "Key finding:" or "Research shows:")
-3. Use consistent terminology (once you name something, use that exact term throughout)
-4. Use full names on first mention (e.g., "Graphiti knowledge graph" not "Graphiti")
-5. Format execution knowledge with clear type signals:
-   - For step-by-step processes: Use numbered steps ("Step 1:", "Step 2:") or workflow language ("First, then, next, finally")
-   - For configuration settings: Use consistent format ("Setting: value" or "Parameter: value")
-   - For prompt templates: Clearly label as prompts, show exact text, include context
-   - For integrations: Describe data flow and what connects to what
-   - For troubleshooting: State problem clearly, provide solution
-   - For data structures: Show field names/types, describe relationships
+        user_message = f"""<research_query>
+{research_query}
+</research_query>
 
-Focus on DEPTH and QUALITY of research. These are structural hints, not constraints."""
+<tasking_context>
+{tasking_context}
+</tasking_context>
 
-        industry_prompt = """You are an industry analyst who tracks real implementations.
-Find case studies, engineering blogs, production use cases.
-Use web_search tool extensively. Return proven, real-world usage with metrics.
-
-When presenting research findings:
-1. Use clear headers to separate distinct findings (## for major topics, ### for sub-findings)
-2. Signal important findings explicitly (start key insights with "Key finding:" or "Research shows:")
-3. Use consistent terminology (once you name something, use that exact term throughout)
-4. Use full names on first mention (e.g., "Arthur.ai" not "Arthur")
-5. Format execution knowledge with clear type signals:
-   - For step-by-step processes: Use numbered steps ("Step 1:", "Step 2:") or workflow language ("First, then, next, finally")
-   - For configuration settings: Use consistent format ("Setting: value" or "Parameter: value")
-   - For prompt templates: Clearly label as prompts, show exact text, include context
-   - For integrations: Describe data flow and what connects to what
-   - For troubleshooting: State problem clearly, provide solution
-   - For data structures: Show field names/types, describe relationships
-
-Focus on DEPTH and QUALITY of research. These are structural hints, not constraints."""
-
-        tool_prompt = """You are a tools researcher who understands frameworks and implementations.
-Search GitHub, documentation, tool comparisons.
-Use web_search tool extensively. Return technical trade-offs and usage patterns.
-
-When presenting research findings:
-1. Use clear headers to separate distinct findings (## for major topics, ### for sub-findings)
-2. Signal important findings explicitly (start key insights with "Key finding:" or "Research shows:")
-3. Use consistent terminology (once you name something, use that exact term throughout)
-4. Use full names on first mention (e.g., "OpenAI GPT-4" not "GPT-4")
-5. Format execution knowledge with clear type signals:
-   - For step-by-step processes: Use numbered steps ("Step 1:", "Step 2:") or workflow language ("First, then, next, finally")
-   - For configuration settings: Use consistent format ("Setting: value" or "Parameter: value")
-   - For prompt templates: Clearly label as prompts, show exact text, include context
-   - For integrations: Describe data flow and what connects to what
-   - For troubleshooting: State problem clearly, provide solution
-   - For data structures: Show field names/types, describe relationships
-
-Focus on DEPTH and QUALITY of research. These are structural hints, not constraints."""
-
-        user_message = f"""Research Query: {research_query}
-
-Tasking Context: {tasking_context}
-
-Conduct deep research using your specialized expertise. Use web search extensively."""
+<instructions>
+Conduct deep research using your specialized expertise. Use web_search extensively to find the highest-signal evidence.
+</instructions>"""
         model = "claude-sonnet-4-5"
         max_tokens = 4000
         tools = [{"type": "web_search_20250305", "name": "web_search"}]
@@ -215,8 +188,63 @@ Conduct deep research using your specialized expertise. Use web search extensive
     return batch
 
 
+def structure_research_for_graph(raw_research: str, worker_type: str, research_dir: str) -> str:
+    """
+    Stage 2: Transform natural research into graph-optimized format.
+
+    This runs AFTER research is complete, using a specialized structuring LLM
+    to add entity naming and relationship markers without constraining research quality.
+
+    Args:
+        raw_research: Natural prose from Stage 1 research LLM
+        worker_type: Worker name (academic_researcher, industry_intelligence, tool_analyzer)
+        research_dir: Where to save structured output
+
+    Returns:
+        Structured research with entity markers and relationship declarations
+    """
+
+    # Use elite optimized structuring prompt (XML tags, examples, clear rules)
+    structuring_prompt = STRUCTURING_PROMPT_TEMPLATE.format(
+        worker_type=worker_type,
+        raw_research=raw_research
+    )
+
+    # Use cheaper model for structured task (Haiku is excellent at following formats)
+    response = anthropic_client.messages.create(
+        model="claude-haiku-4-5",  # Cost-effective for structured transformation
+        max_tokens=6000,  # Slightly longer to ensure no truncation
+        temperature=0,  # Deterministic for formatting
+        messages=[{"role": "user", "content": structuring_prompt}]
+    )
+
+    structured_output = ""
+    for block in response.content:
+        if block.type == "text":
+            structured_output += block.text
+
+    # Save structured version
+    structured_file = os.path.join(research_dir, f"{worker_type}.txt")
+    with open(structured_file, 'w', encoding='utf-8') as f:
+        f.write(f"Worker: {worker_type}\n")
+        f.write(f"Timestamp: {datetime.now().isoformat()}\n")
+        f.write(f"Format: Graph-optimized (Stage 2 - structured from raw research)\n")
+        f.write("="*80 + "\n\n")
+        f.write(structured_output)
+
+    return structured_output
+
+
 def extract_batch_results(batch_id: str, research_dir: str) -> dict:
-    """Extract results from completed batch and save to research directory - COPIED FROM OLD CODE"""
+    """
+    Extract results from completed batch and save to research directory.
+
+    TWO-STAGE PROCESSING:
+    Stage 1: Save raw natural research (what the research LLM produced)
+    Stage 2: Transform into graph-optimized format (entity naming + relationships)
+
+    This separation ensures research quality isn't constrained by formatting requirements.
+    """
     results = {}
 
     for result in anthropic_client.messages.batches.results(batch_id):
@@ -229,62 +257,61 @@ def extract_batch_results(batch_id: str, research_dir: str) -> dict:
                 if block.type == "text":
                     findings += block.text
 
-            results[custom_id] = findings
-
-            # Save to file
-            context_file = os.path.join(research_dir, f"{custom_id}.txt")
-            with open(context_file, 'w', encoding='utf-8') as f:
+            # STAGE 1: Save raw research (natural prose)
+            raw_file = os.path.join(research_dir, f"{custom_id}_raw.txt")
+            with open(raw_file, 'w', encoding='utf-8') as f:
                 f.write(f"Worker: {custom_id}\n")
                 f.write(f"Timestamp: {datetime.now().isoformat()}\n")
                 f.write(f"Batch ID: {batch_id}\n")
+                f.write(f"Format: Natural research (Stage 1 - before structuring)\n")
                 f.write("="*80 + "\n\n")
                 f.write(findings)
+
+            # STAGE 2: Transform for graph extraction
+            print(f"[STRUCTURING] {custom_id} for graph extraction...")
+            structured_findings = structure_research_for_graph(findings, custom_id, research_dir)
+
+            results[custom_id] = structured_findings  # Return structured version for graph
 
     return results
 
 
 def run_critical_analyst(worker_results: dict, research_query: str, tasking_context: str, research_dir: str) -> str:
-    """Run critical analyst to review worker findings - COPIED FROM OLD CODE"""
+    """
+    Run critical analyst to review worker findings.
 
-    critical_prompt = """You are a skeptical senior researcher who reviews findings.
-Score relevance (1-10), filter noise, identify gaps, highlight insights.
-Be ruthless about cutting noise. User's time is valuable.
+    Uses optimized prompt with XML tags and clear evaluation criteria.
+    """
 
-When presenting your analysis:
-1. Use clear headers to separate distinct findings (## for major topics, ### for sub-findings)
-2. Signal important findings explicitly (start key insights with "Key finding:" or "Critical insight:")
-3. Use consistent terminology (once you name something, use that exact term throughout)
-4. Use full names on first mention
-5. Format execution knowledge with clear type signals:
-   - For step-by-step processes: Use numbered steps ("Step 1:", "Step 2:") or workflow language ("First, then, next, finally")
-   - For configuration settings: Use consistent format ("Setting: value" or "Parameter: value")
-   - For prompt templates: Clearly label as prompts, show exact text, include context
-   - For integrations: Describe data flow and what connects to what
-   - For troubleshooting: State problem clearly, provide solution
-   - For data structures: Show field names/types, describe relationships
+    critical_message = f"""<research_query>
+{research_query}
+</research_query>
 
-Focus on DEPTH and QUALITY of analysis. These are structural hints, not constraints."""
+<tasking_context>
+{tasking_context}
+</tasking_context>
 
-    critical_message = f"""Original Research Query: {research_query}
-
-Tasking Context: {tasking_context}
-
-ACADEMIC RESEARCHER FINDINGS:
+<academic_researcher_findings>
 {worker_results.get('academic_researcher', 'No findings')}
+</academic_researcher_findings>
 
-INDUSTRY INTELLIGENCE FINDINGS:
+<industry_intelligence_findings>
 {worker_results.get('industry_intelligence', 'No findings')}
+</industry_intelligence_findings>
 
-TOOL ANALYZER FINDINGS:
+<tool_analyzer_findings>
 {worker_results.get('tool_analyzer', 'No findings')}
+</tool_analyzer_findings>
 
-Review critically. Score relevance, filter noise, identify gaps."""
+<instructions>
+Review all three workers' findings critically. Score relevance, filter noise, identify gaps, challenge weak evidence, and synthesize patterns.
+</instructions>"""
 
     response = anthropic_client.messages.create(
         model="claude-sonnet-4-5",
         max_tokens=2000,
         temperature=0.3,
-        system=critical_prompt,
+        system=CRITICAL_ANALYST_PROMPT,
         messages=[{"role": "user", "content": critical_message}]
     )
 

@@ -546,7 +546,7 @@ async def commit_existing_research_to_graph(session_dir: str):
                 critical_analysis = ''.join(lines[2:]) if len(lines) > 2 else ''.join(lines)
 
         # Load refinement context (if exists)
-        refinement_file = os.path.join(research_dir, "refinement_context_distilled.txt")
+        refinement_file = os.path.join(research_dir, "refinement_distilled.txt")
         refinement_distilled = ""
         if os.path.exists(refinement_file):
             with open(refinement_file, 'r', encoding='utf-8') as f:

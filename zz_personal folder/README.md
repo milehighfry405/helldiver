@@ -1,0 +1,1 @@
+the files in this folder are immaterial to the project. these are my personal files and notes while we are buidling. 

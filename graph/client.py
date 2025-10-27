@@ -11,10 +11,11 @@ Key responsibilities:
 Why 5 episodes per research:
 - Episodes 1-3: Worker findings (academic, industry, tool)
 - Episode 4: Critical analysis
-- Episode 5: Refinement context (WHY we did this research - weighted HIGHER than findings)
+- Episode 5: Refinement context (THE GOLD - captures user's strategic framing and WHY)
 """
 
 import os
+import asyncio
 from datetime import datetime, timezone
 from typing import Dict, Optional
 from dotenv import load_dotenv
@@ -30,8 +31,49 @@ except ImportError:
     GRAPHITI_AVAILABLE = False
     Graphiti = None
 
-# Import entity types for custom entity extraction
-from .entity_types import RESEARCH_ENTITY_TYPES
+# Import ontology configuration for custom entity/edge extraction
+from .ontology import ENTITY_TYPES, EDGE_TYPES, EDGE_TYPE_MAP
+
+
+async def retry_with_backoff(func, max_retries=3, initial_delay=60):
+    """
+    Retry an async function with exponential backoff on rate limit errors.
+
+    Args:
+        func: Async function to retry
+        max_retries: Maximum number of retry attempts (default: 3)
+        initial_delay: Initial delay in seconds (default: 60s = 1 minute)
+
+    Returns:
+        Result from the function if successful
+
+    Raises:
+        Last exception if all retries fail
+    """
+    delay = initial_delay
+    last_exception = None
+
+    for attempt in range(max_retries + 1):
+        try:
+            return await func()
+        except Exception as e:
+            last_exception = e
+            error_msg = str(e).lower()
+
+            # Check if it's a rate limit error
+            if "rate limit" in error_msg or "429" in error_msg:
+                if attempt < max_retries:
+                    print(f"  [RETRY] Rate limit hit, waiting {delay}s before retry {attempt + 1}/{max_retries}...")
+                    await asyncio.sleep(delay)
+                    delay *= 2  # Exponential backoff: 60s, 120s, 240s
+                else:
+                    print(f"  [FAILED] Max retries reached after {max_retries} attempts")
+                    raise last_exception
+            else:
+                # Not a rate limit error, don't retry
+                raise e
+
+    raise last_exception
 
 
 class GraphClient:
@@ -54,12 +96,14 @@ class GraphClient:
             return
 
         try:
+            # Use default OpenAI client
+            # Rate limiting controlled by SEMAPHORE_LIMIT environment variable
             self.graphiti = Graphiti(
                 uri=self._uri,
                 user=self._user,
                 password=self._password
             )
-            print("[OK] Connected to Neo4j")
+            print("[OK] Connected to Neo4j with OpenAI")
         except Exception as e:
             print(f"[ERROR] Failed to connect to Neo4j: {e}")
             print("[WARN] Falling back to mock mode")
@@ -113,14 +157,14 @@ class GraphClient:
             # Note: graphiti.close() is async, but we're recreating anyway
             # so we just let the old connection get garbage collected
 
-            # Create new connection
+            # Create new connection with default OpenAI client
             self.graphiti = Graphiti(
                 uri=self._uri,
                 user=self._user,
                 password=self._password
             )
             self._indexes_built = False  # Rebuild indexes on new connection
-            print("[OK] Reconnected to Neo4j")
+            print("[OK] Reconnected to Neo4j with OpenAI")
 
         except Exception as e:
             print(f"[ERROR] Reconnection failed: {e}")
@@ -154,7 +198,7 @@ class GraphClient:
             2. Episode 2: Industry Intelligence
             3. Episode 3: Tool Analysis
             4. Episode 4: Critical Analysis
-            5. Episode 5: Refinement Context (weighted HIGHER than research)
+            5. Episode 5: Refinement Context (THE GOLD - user's strategic framing)
 
         Why 5 episodes:
         - Graphiti extracts richer entities from 1,400-2,600 token chunks
@@ -193,15 +237,31 @@ class GraphClient:
 
             ep_name = f"{episode_name} - {worker_label}"
 
+            # Generate structured source_description with metadata
+            source_desc = f"""[METADATA]
+Research Session: {session_name}
+Episode: {episode_name}
+Worker: {worker_label}
+Group ID: {group_id}
+Timestamp: {timestamp.isoformat()}
+
+[CONTEXT]
+This episode contains {worker_label.lower()} findings for the research question: "{episode_name}".
+Part of the {session_name} research session using Helldiver's multi-agent research system."""
+
+            print(f"  [PROCESSING] {worker_label}... (extracting entities)")
             try:
-                await self.graphiti.add_episode(
+                # Wrap in retry logic for rate limit handling
+                await retry_with_backoff(lambda: self.graphiti.add_episode(
                     name=ep_name,
                     episode_body=content,
-                    entity_types=RESEARCH_ENTITY_TYPES,
-                    source_description=f"Helldiver Research | {session_name} | {worker_label}",
+                    entity_types=ENTITY_TYPES,
+                    edge_types=EDGE_TYPES,
+                    edge_type_map=EDGE_TYPE_MAP,
+                    source_description=source_desc,
                     reference_time=timestamp,
                     group_id=group_id
-                )
+                ))
                 episodes_committed.append(ep_name)
                 print(f"[EPISODE] ✓ {ep_name}")
 
@@ -214,15 +274,30 @@ class GraphClient:
         if critical_analysis:
             ep_name = f"{episode_name} - Critical Analysis"
 
+            source_desc = f"""[METADATA]
+Research Session: {session_name}
+Episode: {episode_name}
+Worker: Critical Analysis
+Group ID: {group_id}
+Timestamp: {timestamp.isoformat()}
+
+[CONTEXT]
+This episode contains critical analysis synthesizing findings from academic research, industry intelligence, and tool analysis.
+Reviews evidence quality, identifies contradictions, filters noise, and highlights key insights."""
+
+            print(f"  [PROCESSING] Critical Analysis... (extracting entities)")
             try:
-                await self.graphiti.add_episode(
+                # Wrap in retry logic for rate limit handling
+                await retry_with_backoff(lambda: self.graphiti.add_episode(
                     name=ep_name,
                     episode_body=critical_analysis,
-                    entity_types=RESEARCH_ENTITY_TYPES,
-                    source_description=f"Helldiver Research | {session_name} | Critical Analysis",
+                    entity_types=ENTITY_TYPES,
+                    edge_types=EDGE_TYPES,
+                    edge_type_map=EDGE_TYPE_MAP,
+                    source_description=source_desc,
                     reference_time=timestamp,
                     group_id=group_id
-                )
+                ))
                 episodes_committed.append(ep_name)
                 print(f"[EPISODE] ✓ {ep_name}")
 
@@ -231,11 +306,25 @@ class GraphClient:
                 errors.append(error_msg)
                 print(f"[ERROR] {error_msg}")
 
-        # Episode 5: Refinement Context (weighted HIGHER than research)
+        # Episode 5: Refinement Context (THE GOLD - user's strategic framing)
         if refinement_distilled:
             ep_name = f"{episode_name} - Refinement Context"
 
-            # Build episode body with explicit weighting note
+            source_desc = f"""[METADATA]
+Research Session: {session_name}
+Episode: {episode_name}
+Type: Refinement Context (THE GOLD)
+Group ID: {group_id}
+Timestamp: {timestamp.isoformat()}
+
+[CONTEXT]
+This episode captures the user's mental models, reframings, constraints, priorities, and synthesis instructions
+that led to this research being executed. This is the WHY behind the research - the user's strategic framing
+and execution guidance.
+
+Contains: Mental models, strategic reframings, hard constraints, priority hierarchies, synthesis rules."""
+
+            # Build episode body
             context_body = f"""Research Query: {episode_name}
 Episode Type: Refinement Context
 
@@ -243,20 +332,23 @@ DISTILLED CONTEXT (The "Why" Behind This Research):
 {refinement_distilled}
 
 This episode captures the user's mental models, key questions, and strategic framing
-that led to this research being executed. This context is WEIGHTED HIGHER than raw
-research findings when interpreting results."""
+that led to this research being executed."""
 
+            print(f"  [PROCESSING] Refinement Context (THE GOLD)... (extracting entities)")
             try:
-                await self.graphiti.add_episode(
+                # Wrap in retry logic for rate limit handling
+                await retry_with_backoff(lambda: self.graphiti.add_episode(
                     name=ep_name,
                     episode_body=context_body,
-                    entity_types=RESEARCH_ENTITY_TYPES,
-                    source_description=f"Helldiver Research | {session_name} | Refinement Context",
+                    entity_types=ENTITY_TYPES,
+                    edge_types=EDGE_TYPES,
+                    edge_type_map=EDGE_TYPE_MAP,
+                    source_description=source_desc,
                     reference_time=timestamp,
                     group_id=group_id
-                )
+                ))
                 episodes_committed.append(ep_name)
-                print(f"[EPISODE] ✓ {ep_name} (CONTEXT - WEIGHTED HIGHER)")
+                print(f"[EPISODE] ✓ {ep_name} (THE GOLD)")
 
             except Exception as e:
                 error_msg = f"Failed to commit {ep_name}: {str(e)}"
@@ -271,9 +363,12 @@ research findings when interpreting results."""
         }
 
     def close(self):
-        """Close Graphiti connection gracefully."""
-        if self.graphiti:
-            try:
-                self.graphiti.close()
-            except:
-                pass
+        """
+        Close Graphiti connection gracefully.
+
+        Note: Graphiti.close() is async and can't be called from sync context.
+        Connection cleanup happens automatically on process exit.
+        """
+        # graphiti.close() is async - can't call from sync method
+        # Connection gets cleaned up on process exit
+        pass

@@ -1,7 +1,7 @@
 # Graph Architecture Documentation
 
-**Last Updated**: 2025-01-19
-**Status**: Under Active Development
+**Last Updated**: 2025-10-26
+**Status**: ✅ Ontology System Implemented and Production-Validated
 
 ---
 
@@ -9,10 +9,88 @@
 
 This document defines the knowledge graph architecture for the Helldiver Research system. The graph serves as the **permanent memory and reasoning substrate** for:
 
-1. **Research Intelligence**: Storing findings from multi-agent research sessions
+1. **Research Intelligence**: Storing findings from multi-agent research sessions with custom ontology
 2. **Cross-Session Synthesis**: Connecting insights across different research topics
-3. **Execution Layer**: Providing context for Claude Skills and other execution agents
+3. **Execution Layer**: Providing context for Clay workflows and other execution agents
 4. **Long-Term Knowledge**: Building a comprehensive, queryable knowledge base
+
+---
+
+## Ontology System
+
+**Implementation**: `graph/ontology.py`
+**Status**: ✅ Production-validated (70 nodes, 243 relationships extracted from Arthur.ai research)
+
+### Entity Types (10 Total, 3 Tiers)
+
+**Tier 1: Concrete Domain Entities** (Always extract via NER)
+- `Company` - Organizations being researched (Arthur.ai, competitors, customers)
+- `Tool` - Software, platforms, technologies (Clay, Outreach, monitoring tools)
+- `Person` - Individuals mentioned (buyer personas, decision makers, analysts)
+
+**Tier 2: Strategic Concept Entities** (Require deliberate verbalization)
+- `ResearchObjective` - Named strategic questions/goals being investigated
+- `Hypothesis` - Specific testable assumptions or strategic premises
+- `Methodology` - Specific approaches, workflows, or playbooks
+- `Finding` - Discrete insights or discoveries from research
+
+**Tier 3: Execution and Outcome Entities** (For implementation documentation)
+- `Implementation` - Concrete execution attempts of methodologies
+- `Market` - Market segments, verticals, opportunity spaces
+- `Capability` - Organizational or product capabilities
+
+### Edge Types (11 Semantic Relationships)
+
+**NOTE**: All Neo4j edges use `RELATES_TO` type. Semantic classification stored in `r.name` property.
+
+- `INVESTIGATES` - ResearchObjective → Company/Tool/Market
+- `TESTS` - Methodology/Implementation → Hypothesis
+- `IMPLEMENTS` - Implementation → Methodology
+- `REVEALS` - Methodology → Finding
+- `SUPPORTS` - Finding → Hypothesis (evidence for)
+- `CONTRADICTS` - Finding → Finding/Hypothesis (conflicts with)
+- `ENABLES` - Tool/Capability → Implementation
+- `REQUIRES` - Implementation → Tool/Capability
+- `INFORMS` - Finding → Implementation (guides execution)
+- `TARGETS` - Tool/Company → Market
+- `COMPETES_WITH` - Company → Company, Tool → Tool
+
+### Extraction Results (Production Data)
+
+**From Arthur.ai Downmarket Research (2025-10-26)**:
+
+**Extracted (7/10 types)**:
+- Company: 11 entities
+- Tool: 13 entities
+- Person: 13 entities
+- ResearchObjective: 3 entities ✓ (strategic entities work!)
+- Methodology: 8 entities
+- Market: 9 entities
+- Capability: 3 entities
+
+**Not Extracted (3/10 types)**:
+- Hypothesis: 0 (research was exploratory, not hypothesis-testing)
+- Finding: 0 (LLM extracted concrete entities instead - more useful for querying)
+- Implementation: 0 (research was strategic analysis, not execution)
+
+**Graph Metrics**:
+- 70 nodes, 243 relationships (3.4 relationships/node)
+- 36 different relationship types (ontology + emergent)
+- Highly connected graph suitable for traversal queries
+
+### Design Philosophy
+
+**Why This Ontology Design?**
+
+1. **NER-Compatible**: Graphiti uses Named Entity Recognition - entities must be "mentioned" in text
+2. **Deliberate Verbalization**: Strategic entities work when explicitly named: "ResearchObjective R1 'downmarket expansion' investigates..."
+3. **Two-Stage Architecture**: Natural research (quality) → Structuring LLM (graph-optimized) preserves both
+4. **Text-Based Properties**: Edge attributes stored in `r.fact` text (not structured) - Graphiti limitation, but sufficient for context reconstruction
+5. **Concrete Over Abstract**: Finding entities don't extract well - concrete Company/Market/Tool entities more useful
+
+**See**:
+- ADR-004: Graphiti Ontology Extraction Findings
+- ADR-005: Elite Prompt Engineering Implementation
 
 ---
 

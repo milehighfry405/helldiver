@@ -59,10 +59,13 @@ These are lessons from painful debugging sessions. **Read every session.**
 **Why**: Validates structure before consuming API credits, catches API signature errors
 **See**: docs/archive/sessions/SESSION_SUMMARY_4.md "Mock Mode Validation"
 
-### 6. OpenAI Rate Limits: Expect 500 Errors
-**Why**: Graphiti uses OpenAI `gpt-4o-mini` for entity extraction
-**Solution**: Progressive backoff (2s, 4s, 6s) - implemented in code
-**See**: docs/CURRENT_WORK.md "Critical Bugs Fixed"
+### 6. SEMAPHORE_LIMIT Controls Rate Limiting (NOT max_coroutines)
+**Set**: `SEMAPHORE_LIMIT=1` in `.env` file
+**Why**: Controls Graphiti's internal LLM call concurrency (default: 10 causes rate limits)
+**NOT**: `max_coroutines` in Graphiti() constructor - that doesn't control rate limiting
+**Cost**: 3+ hours debugging rate limits with wrong parameter
+**Solution**: Automatic retry with exponential backoff (60s, 120s, 240s) implemented in graph/client.py
+**See**: SESSION_SUMMARY_8, graph/client.py `retry_with_backoff()`
 
 ### 7. Neo4j First-Write Warnings: Expected Behavior
 **What**: "Property does not exist", "Label does not exist" warnings
@@ -127,9 +130,11 @@ helldiver/
 │   ├── session.py           # Session state management
 │   └── research_cycle.py    # Unified research execution
 ├── workers/
-│   └── research.py          # Batch API for 3 workers + critical analyst
+│   ├── research.py          # Batch API for 3 workers + critical analyst (two-stage: research → structuring)
+│   └── prompts.py           # Elite prompts using Anthropic 2025 best practices
 ├── graph/
-│   └── client.py            # Graphiti client (commits 5 episodes per research)
+│   ├── client.py            # Graphiti client (commits 5 episodes, retry logic)
+│   └── ontology.py          # Entity/edge types for knowledge graph extraction
 ├── utils/
 │   └── files.py             # File I/O and conversation distillation
 │

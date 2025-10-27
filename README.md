@@ -32,12 +32,13 @@ This automatically loads:
 
 ### What This Project Does
 
-Helldiver is a multi-agent research system that:
-1. Takes a user query (e.g., "arthur ai based on out nyc")
+Helldiver is a multi-agent research system with ontology-driven knowledge graph:
+1. Takes a user query (e.g., "Arthur.ai downmarket opportunity")
 2. Spawns 4 specialist workers (Academic, Industry, Tool, Critical Analyst)
 3. Conducts research using Anthropic Batch API (50% cost savings)
-4. Allows interactive refinement with prompt caching (90% cost savings)
-5. Commits findings to Graphiti knowledge graph for future querying
+4. Two-stage architecture: Natural research → Graph-optimized structuring
+5. Allows interactive refinement with prompt caching (90% cost savings)
+6. Commits findings to Graphiti knowledge graph with custom ontology (10 entity types, 11 edge types)
 
 ### Key Architecture Principles
 
@@ -60,9 +61,18 @@ helldiver/
 │       ├── commit.md            # /commit command
 │       └── session-end.md       # /session-end command
 │
-├── main.py                      # Core orchestrator (ResearchSession, state machine)
-├── graphiti_client.py           # Graphiti/Neo4j interface
-├── helldiver_agent.py           # (Legacy - functionality merged into main.py)
+├── main.py                      # Entry point, research orchestration
+├── core/
+│   ├── session.py               # Session state management
+│   └── research_cycle.py        # Unified research execution
+├── workers/
+│   ├── research.py              # Batch API + two-stage architecture
+│   └── prompts.py               # Elite prompts (Anthropic 2025 best practices)
+├── graph/
+│   ├── client.py                # Graphiti client with retry logic
+│   └── ontology.py              # Entity/edge types for knowledge graph
+├── utils/
+│   └── files.py                 # File I/O and conversation distillation
 │
 ├── context/                     # Research sessions (gitignored except migration session)
 │   └── {Episode_Name}/         # Session folder = initial episode name
@@ -81,7 +91,10 @@ helldiver/
 │   ├── decisions/               # Architecture Decision Records (ADRs)
 │   │   ├── 001-episode-naming-strategy.md
 │   │   ├── 002-graphiti-chunking-strategy.md
-│   │   └── 003-episode-grouping-metadata.md
+│   │   ├── 003-episode-grouping-metadata.md
+│   │   ├── 004-graphiti-ontology-extraction-findings.md
+│   │   ├── 005-elite-prompt-engineering-implementation.md
+│   │   └── 006-rate-limiting-and-retry-strategy.md
 │   │
 │   └── archive/                 # Historical documentation
 │       ├── AI_ONBOARDING.md     # Old onboarding (replaced by CLAUDE.md + /onboard)

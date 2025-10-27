@@ -1,0 +1,40 @@
+REFINEMENT CONTEXT - Distilled (Committed to Graph)
+================================================================================
+This is the extracted gold/signal from the conversation.
+This version is committed to the knowledge graph as Episode 5.
+WEIGHTING: This context is weighted HIGHER than raw research findings.
+================================================================================
+
+## Mental Models
+
+User frames the research problem as "constraint-free discovery when uninformed." Rather than imposing premature constraints based on incomplete knowledge, User explicitly delegates problem definition to research. User's mental model treats research as a two-phase process: first, build domain knowledge (Arthur AI's offerings, competitive landscape, market segment characteristics), then synthesize strategic recommendations (optimal sales motion) from that foundation. This reveals User believes strategic recommendations require grounded understanding of market reality, not abstract theorizing.
+
+User conceptualizes "world's best sales motion" as segment-dependent, not universal. The phrase "for that segment" indicates User's mental model recognizes that Arthur AI's downmarket sales motion must be designed for the specific characteristics of Arthur AI's target market segment, not imported from generic sales playbooks. User expects research to first characterize the segment (competitive dynamics, customer profiles, buying behaviors), then derive sales motion recommendations from segment characteristics.
+
+## Reframings
+
+User reframes the research request from "answer these three specific questions" to "discover what questions should be answered." Initial request appeared to ask for direct answers about Arthur AI's sales motion, but User's clarification reveals the actual request: conduct open-ended discovery research on Arthur AI's market position, then use that research to determine what sales motion recommendations are appropriate. User explicitly states "I don't want to put constraints on you when I'm not informed," reframing constraint-setting as premature when domain knowledge is incomplete.
+
+User shifts from asking "what is the sales motion" to "what should the sales motion be, given market reality." The phrase "see what the point of view would be" indicates User wants research to construct a perspective grounded in Arthur AI's competitive context, not retrieve existing best practices. This reframes the task from information retrieval to strategic synthesis.
+
+## Constraints
+
+User imposes a meta-constraint: avoid premature constraints during the research phase. User explicitly rejects defining research boundaries before understanding Arthur AI's market context. This constraint shapes research methodology: begin with broad discovery (Arthur AI's offerings, competitors, market segment), then narrow to specific strategic questions (sales motion design) only after domain knowledge is established.
+
+User requires research to answer "same as the first" for second and third questions, indicating a constraint of methodological consistency. Whatever research approach is used for Arthur AI's sales motion question must be replicated for subsequent questions. This suggests User values comparable analytical depth across all research questions, not variable effort allocation.
+
+## Priorities
+
+User prioritizes informed decision-making over speed. The statement "I don't want to put constraints on you when I'm not informed" reveals User values building correct understanding over rapid iteration. User is willing to invest in comprehensive discovery research (Arthur AI's offerings, competitive landscape, market segment analysis) before attempting to answer strategic questions about sales motion design.
+
+User prioritizes research-grounded recommendations over intuition-based answers. Rather than providing initial hypotheses about Arthur AI's optimal sales motion, User explicitly delegates both problem definition and solution synthesis to research. This indicates User's hierarchy: evidence-based strategy > speed-to-answer > personal intuition when domain knowledge is incomplete.
+
+User values segment-specific strategy over generic best practices. The phrase "for that segment" emphasizes that Arthur AI's sales motion must be tailored to the specific characteristics of Arthur AI's target market, not adapted from universal sales frameworks. This reveals User's priority: contextual fit > proven playbooks.
+
+## Synthesis Instructions
+
+Research synthesis for Arthur AI's sales motion should follow a dependency chain: first establish Arthur AI's product offerings and competitive positioning, then characterize Arthur AI's target market segment (customer profiles, buying behaviors, competitive alternatives), then derive sales motion recommendations from the intersection of Arthur AI's capabilities and segment characteristics. Recommendations that skip the foundation steps (market understanding) should be rejected as insufficiently grounded.
+
+User expects research to construct "point of view" through synthesis, not retrieval. The phrase "see what the point of view would be" indicates research should generate strategic perspective by integrating multiple information sources (Arthur AI's offerings, competitive landscape, segment dynamics), not locate existing expert opinions. Single-source recommendations should be treated as insufficient; strategic perspective requires multi-source synthesis.
+
+Evidence standard for sales motion recommendations: recommendations must be derivable from Arthur AI's specific market context (competitive positioning, target segment characteristics), not imported from generic sales frameworks. A recommendation is high-value if it connects Arthur AI's unique market position to specific sales tactics; it is noise if it could apply to any B2B SaaS company regardless of market context.
