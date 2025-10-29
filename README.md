@@ -74,14 +74,19 @@ helldiver/
 ├── utils/
 │   └── files.py                 # File I/O and conversation distillation
 │
-├── context/                     # Research sessions (gitignored except migration session)
-│   └── {Episode_Name}/         # Session folder = initial episode name
-│       ├── {Episode_Name}/     # Initial research (worker outputs)
-│       │   └── narrative.txt   # Synthesized findings for initial research
-│       ├── {Deep_Topic}/       # Deep research folders (clean names)
-│       │   └── narrative.txt   # Synthesized findings for deep research
-│       ├── session.json        # Session metadata (includes tasking context)
-│       └── refinement_*.txt/json  # Refinement logs (includes tasking + refinement)
+├── context/                     # Research sessions (gitignored)
+│   └── {Session_Name}/         # Session folder
+│       ├── {Episode_Name}/     # Research episode folder
+│       │   ├── academic_researcher.txt      # Structured research (graph-optimized)
+│       │   ├── academic_researcher_raw.txt  # Natural research (original quality)
+│       │   ├── industry_intelligence.txt    # Structured research
+│       │   ├── industry_intelligence_raw.txt
+│       │   ├── tool_analyzer.txt            # Structured research
+│       │   ├── tool_analyzer_raw.txt
+│       │   ├── critical_analysis.txt        # Synthesized critical analysis
+│       │   ├── refinement_context.txt       # Refinement conversation
+│       │   └── refinement_distilled.txt     # Distilled strategic context (THE GOLD)
+│       └── session.json        # Session metadata
 │
 ├── docs/
 │   ├── CURRENT_WORK.md          # **Active work tracker** (updated every commit)
@@ -100,12 +105,11 @@ helldiver/
 │       ├── AI_ONBOARDING.md     # Old onboarding (replaced by CLAUDE.md + /onboard)
 │       ├── COMMIT_CHECKLIST.md  # Old checklist (embedded in /commit plugin)
 │       └── sessions/            # Historical session summaries
-│           └── SESSION_SUMMARY_1-4.md
+│           └── SESSION_SUMMARY_*.md
 │
-├── scripts/
-│   └── kill_agents.py           # Utility to kill zombie processes
 ├── .env                         # API keys (gitignored)
-└── requirements.txt
+├── requirements.txt             # Python dependencies
+└── .gitignore
 
 ## Installation
 
